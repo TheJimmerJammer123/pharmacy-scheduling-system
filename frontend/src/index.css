@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 9% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 9% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 9% 17%;
+
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 208 100% 42%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+
+    --accent: 25 100% 96%;
+    --accent-foreground: 25 95% 53%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 25 95% 53%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 355 7% 97%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(25 95% 53%), hsl(208 100% 42%));
+    --gradient-secondary: linear-gradient(135deg, hsl(208 100% 42%), hsl(208 100% 52%));
+    
+    --shadow-glow: 0 0 20px hsl(var(--primary) / 0.3);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.1);
+    
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 99%;
+
+    --sidebar-foreground: 220 9% 17%;
+
+    --sidebar-primary: 25 95% 53%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 25 100% 96%;
+
+    --sidebar-accent-foreground: 25 95% 53%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 25 95% 53%;
+  }
+
+  .dark {
+    --background: 220 13% 9%;
+    --foreground: 220 9% 89%;
+
+    --card: 220 13% 9%;
+    --card-foreground: 220 9% 89%;
+
+    --popover: 220 13% 9%;
+    --popover-foreground: 220 9% 89%;
+
+    --primary: 25 95% 58%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 208 100% 52%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 13% 14%;
+    --muted-foreground: 220 9% 65%;
+
+    --accent: 220 13% 14%;
+    --accent-foreground: 25 95% 58%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 14%;
+    --input: 220 13% 14%;
+    --ring: 25 95% 58%;
+    --sidebar-background: 220 13% 7%;
+    --sidebar-foreground: 220 9% 89%;
+    --sidebar-primary: 25 95% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 13% 14%;
+    --sidebar-accent-foreground: 25 95% 58%;
+    --sidebar-border: 220 13% 14%;
+    --sidebar-ring: 25 95% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Font size classes for root */
+  .font-size-small {
+    font-size: 14px !important;
+  }
+  .font-size-medium {
+    font-size: 16px !important;
+  }
+  .font-size-large {
+    font-size: 18px !important;
+  }
+
+  /* Compact mode: reduce paddings/margins globally */
+  .compact-mode .p-4, .compact-mode .px-4, .compact-mode .py-4 {
+    padding: 0.5rem !important;
+  }
+  .compact-mode .p-6, .compact-mode .px-6, .compact-mode .py-6 {
+    padding: 1rem !important;
+  }
+  .compact-mode .m-4, .compact-mode .mx-4, .compact-mode .my-4 {
+    margin: 0.5rem !important;
+  }
+  .compact-mode .m-6, .compact-mode .mx-6, .compact-mode .my-6 {
+    margin: 1rem !important;
+  }
+  .compact-mode .gap-6 {
+    gap: 1rem !important;
+  }
+  .compact-mode .gap-4 {
+    gap: 0.5rem !important;
+  }
+}

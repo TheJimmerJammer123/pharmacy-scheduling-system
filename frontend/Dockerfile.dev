@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install essential tools for development
+RUN apk add --no-cache curl git
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Install nodemon globally for better development experience
+RUN npm install -g nodemon
+
+# Copy source code (will be overridden by volume mounts)
+COPY . .
+
+# Expose the development server port
+EXPOSE 3000
+
+# Start the development server with hot reload
+CMD ["npm", "run", "dev"]
