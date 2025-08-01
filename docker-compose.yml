@@ -46,8 +46,11 @@ services:
       # SMS Gateway Configuration  
       - VITE_CAPCOM6_API_URL=http://100.126.232.47:8080/message
       - VITE_CAPCOM6_USERNAME=sms
-      - VITE_CAPCOM6_PASSWORD=ciSEJNmy
+      - VITE_CAPCOM6_PASSWORD=ciSEJNmY
       - VITE_WEBHOOK_BASE_URL=http://localhost:8002
+      
+      # AI Configuration
+      - VITE_OPENROUTER_API_KEY=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
       
       # Development Configuration
       - CHOKIDAR_USEPOLLING=true
@@ -384,6 +387,10 @@ services:
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      # Capcom6 SMS Gateway Configuration
+      CAPCOM6_URL: http://100.126.232.47:8080
+      CAPCOM6_USERNAME: sms
+      CAPCOM6_PASSWORD: ciSEJNmY
       # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
     command:
@@ -454,6 +461,8 @@ services:
       - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
       # Initialize the database settings with JWT_SECRET and JWT_EXP
       - ./supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      # Pharmacy application schema and data
+      - ./supabase/volumes/db/init/001_pharmacy_schema.sql:/docker-entrypoint-initdb.d/migrations/01-pharmacy_schema.sql:Z
       # PGDATA directory is persisted between restarts
       - ./volumes/db/data:/var/lib/postgresql/data:Z
       # Changes required for internal supabase data such as _analytics
@@ -583,5 +592,74 @@ services:
         "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
       ]
 
+  # n8n workflow automation platform
+  n8n:
+    container_name: n8n
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Basic configuration
+      N8N_HOST: "0.0.0.0"
+      N8N_PORT: 5678
+      N8N_PROTOCOL: "http"
+      
+      # Database configuration (use existing PostgreSQL)
+      DB_TYPE: "postgresdb"
+      DB_POSTGRESDB_HOST: "db"
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: "${POSTGRES_DB}"
+      DB_POSTGRESDB_USER: "postgres"
+      DB_POSTGRESDB_PASSWORD: "${POSTGRES_PASSWORD}"
+      DB_POSTGRESDB_SCHEMA: "n8n"
+      
+      # Security
+      N8N_ENCRYPTION_KEY: "${N8N_ENCRYPTION_KEY:-your-super-secret-n8n-encryption-key-min-32-chars}"
+      
+      # Authentication (enable basic auth for security)
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: "${N8N_BASIC_AUTH_USER:-admin}"
+      N8N_BASIC_AUTH_PASSWORD: "${N8N_BASIC_AUTH_PASSWORD:-change-this-password}"
+      
+      # Webhooks and external access
+      WEBHOOK_URL: "http://localhost:5678/"
+      
+      # Performance and functionality
+      NODE_ENV: "production"
+      GENERIC_TIMEZONE: "America/New_York"
+      N8N_SECURE_COOKIE: "false"
+      
+      # Allow external modules and code execution
+      NODE_FUNCTION_ALLOW_EXTERNAL: "*"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # n8n-mcp server for AI assistance with n8n nodes
+  n8n-mcp:
+    container_name: n8n-mcp
+    image: ghcr.io/czlonkowski/n8n-mcp:latest
+    restart: unless-stopped
+    ports:
+      - "3005:3000"  # Use port 3005 to avoid conflict with frontend
+    depends_on:
+      - n8n
+    environment:
+      - PORT=3000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   db-config:
+  n8n_data:

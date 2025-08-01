@@ -76,7 +76,7 @@ docker build -f Dockerfile --target development -t pharm-frontend:dev .
 ### **Environment Variables**
 ```env
 # Supabase Configuration
-VITE_SUPABASE_URL=http://localhost:8000
+VITE_SUPABASE_URL=http://localhost:8002
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 

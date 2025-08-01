@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Home, MessageSquare, Users, Settings, Menu, X, Store, User } from "@/lib/icons";
+import { Home, MessageSquare, Users, Settings, Menu, X, Store, User, Bot } from "@/lib/icons";
 // import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ const SettingsComponent = lazy(() => import("./Settings").then(module => ({ defa
 const DailySummaryCalendar = lazy(() => import("./DailySummaryCalendar").then(module => ({ default: module.DailySummaryCalendar })));
 const StoreScheduling = lazy(() => import("./StoreScheduling").then(module => ({ default: module.StoreScheduling })));
 const EmployeeScheduling = lazy(() => import("./EmployeeScheduling").then(module => ({ default: module.EmployeeScheduling })));
+const ChatbotInterface = lazy(() => import("./ChatbotInterface").then(module => ({ default: module.ChatbotInterface })));
 
 export const AppLayout = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -47,6 +48,7 @@ export const AppLayout = () => {
   const navigation = [
     { id: "dashboard", name: "Dashboard", icon: Home, badge: null },
     { id: "messages", name: "Messages", icon: MessageSquare, badge: unreadMessageCount > 0 ? unreadMessageCount : null },
+    { id: "chatbot", name: "AI Assistant", icon: Bot, badge: null },
     { id: "store-scheduling", name: "Store Scheduling", icon: Store, badge: null },
     { id: "employee-scheduling", name: "Employee Scheduling", icon: User, badge: null },
     { id: "contacts", name: "Contacts", icon: Users, badge: null },
@@ -96,6 +98,12 @@ export const AppLayout = () => {
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <EmployeeScheduling activeTab={activeTab} setActiveTab={setActiveTab} />
+          </Suspense>
+        );
+      case "chatbot":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ChatbotInterface activeTab={activeTab} />
           </Suspense>
         );
       default:

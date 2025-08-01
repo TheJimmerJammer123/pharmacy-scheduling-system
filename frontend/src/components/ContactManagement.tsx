@@ -108,7 +108,7 @@ export const ContactManagement = ({ activeTab, setActiveTab }: ContactManagement
   });
 
   const updateContactMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string | number; data: any }) => {
       const response = await ApiClient.updateContact(id, data);
       if (!response.success) {
         throw new Error(response.error || 'Failed to update contact');
@@ -142,7 +142,7 @@ export const ContactManagement = ({ activeTab, setActiveTab }: ContactManagement
   });
 
   const deleteContactMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string | number) => {
       const response = await ApiClient.deleteContact(id);
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete contact');

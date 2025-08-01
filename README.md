@@ -17,8 +17,9 @@ This project follows a service-oriented architecture with the following componen
 
 - **Backend**: Supabase (PostgreSQL database, authentication, real-time features, API)
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS + shadcn/ui
-- **SMS Gateway**: Capcom6 Android SMS Gateway (local server mode via Tailscale)
-- **AI Integration**: Intelligent chatbot with SQL query capabilities
+- **SMS Gateway**: Capcom6 Android SMS Gateway (local server mode via Tailscale) ✅ **OPERATIONAL**
+- **Workflow Automation**: Self-hosted n8n for advanced automation and integrations
+- **AI Integration**: Intelligent chatbot with SQL query capabilities (planned)
 - **Containerization**: Docker with unified docker-compose.yml
 
 ## ✨ Core Features
@@ -29,17 +30,20 @@ This project follows a service-oriented architecture with the following componen
 - **Employee Database**: Comprehensive employee information and scheduling history
 - **Real-time Updates**: Live schedule updates and notifications
 
-### 💬 **SMS Communication**
-- **Two-Way Messaging**: Send and receive SMS messages with employees
-- **Message History**: Store and retrieve complete conversation history
+### 💬 **SMS Communication** ✅ **FULLY OPERATIONAL**
+- **Two-Way Messaging**: Send and receive SMS messages with employees via Capcom6 gateway
+- **Real-time Updates**: Live message updates with auto-scroll to newest messages
+- **Message History**: Store and retrieve complete conversation history with full metadata
 - **Contact Management**: Organize employee contacts and communication preferences
-- **Bulk Messaging**: Send notifications to multiple employees simultaneously
+- **Smart Notifications**: Toast alerts only when not actively viewing messages
+- **Webhook Integration**: Automatic message processing from Capcom6 SMS gateway
 
-### 🤖 **AI Chatbot Integration**
-- **Intelligent Assistant**: AI chatbot for scheduling queries and employee questions
-- **SQL Query Capabilities**: Direct database access for real-time schedule information
-- **Contextual Responses**: AI understands pharmacy scheduling context and terminology
-- **Employee Support**: Automated responses to common scheduling questions
+### 🤖 **AI Chatbot Integration** ✅ **BASIC VERSION OPERATIONAL**
+- **Intelligent Assistant**: AI chatbot for general pharmacy and scheduling questions
+- **OpenRouter Integration**: Powered by GPT-3.5-turbo for natural conversations
+- **Real-time Chat**: Instant responses with auto-scroll and message history
+- **Pharmacy Context**: Understands pharmacy operations and employee management
+- **Future Enhancement**: SQL query capabilities for direct schedule access (planned)
 
 ### 🔄 **Smart Conversation Management**
 - **Conversation Toggle**: Switch between AI chatbot and direct human communication
@@ -110,9 +114,10 @@ pharm-project/
    ```
 
 3. Access the services:
-   - Frontend: [http://localhost:3000](http://localhost:3000) ✅
-   - Supabase Studio: [http://localhost:3001](http://localhost:3001)
-   - API Gateway: [http://localhost:8002](http://localhost:8002)
+   - Frontend: [http://localhost:3000](http://localhost:3000) ✅ **OPERATIONAL**
+   - Supabase Studio: [http://localhost:3001](http://localhost:3001) ✅ **OPERATIONAL**
+   - API Gateway (Kong): [http://localhost:8002](http://localhost:8002) ✅ **OPERATIONAL**
+   - n8n Workflow Platform: [http://localhost:5678](http://localhost:5678) ✅ **OPERATIONAL**
 
 ## 🛠️ Development
 
@@ -181,9 +186,44 @@ Once started, access these services:
 - **Connection Pooler**: `localhost:6543` (transaction pooling)
 
 ### **External Services**
-- **📱 Capcom6 SMS Gateway**: `100.126.232.47:8080` (via Tailscale)
+- **📱 Capcom6 SMS Gateway**: `100.126.232.47:8080` (via Tailscale) ✅ **OPERATIONAL**
   - Username: `sms`
-  - Password: `ciSEJNmy`
+  - Password: `ciSEJNmY`
+  - **Documentation**: 
+    - [Official Repository](https://github.com/capcom6/android-sms-gateway)
+    - [API Specification](https://capcom6.github.io/android-sms-gateway/)
+  - **Webhook URL**: `https://webhook.jammer-industries.com/functions/v1/capcom6-webhook`
+  - **Status**: ✅ Sending and receiving SMS with real-time updates
+
+## 📋 Current System Status
+
+### ✅ **Fully Operational Components**
+- **🐳 Docker Services**: All containers running healthy
+- **🗃️ Database**: PostgreSQL with complete pharmacy schema and real-time replication
+- **🌐 REST API**: PostgREST endpoints fully functional at port 8002
+- **⚛️ Frontend**: React app with hot reload development environment
+- **📱 SMS Integration**: Complete two-way SMS communication via Capcom6
+  - **Outbound**: Send messages via Edge Functions
+  - **Inbound**: Webhook receiving with real-time updates
+  - **UI**: Auto-scroll to new messages, smart notifications
+- **🤖 AI Assistant**: Basic chatbot integration with OpenRouter API
+  - **Natural Conversations**: GPT-3.5-turbo powered responses
+  - **Pharmacy Context**: Understanding of pharmacy operations
+  - **Real-time Chat**: Instant responses with message history
+- **🔄 Real-time Updates**: Live message synchronization between devices
+- **⚙️ Workflow Automation**: n8n platform with MCP AI assistance
+- **🔐 Authentication**: Both anonymous and service role access working
+
+### 🚧 **In Development**
+- **📊 Excel Import**: Schedule data import functionality
+- **🔍 Advanced AI**: SQL query capabilities for AI chatbot (basic version complete)
+- **📈 Advanced Analytics**: Comprehensive reporting and insights
+
+### 🎯 **Next Priority Features**
+- Employee onboarding automation via n8n workflows
+- Advanced scheduling conflict detection
+- Bulk SMS campaign management
+- Integration with existing pharmacy management systems
 
 ## 🔧 Configuration
 
@@ -205,9 +245,10 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 DATABASE_URL=postgres://postgres:your-super-secret-and-long-postgres-password@localhost:5433/postgres
 
 # Capcom6 SMS Gateway
+# Documentation: https://github.com/capcom6/android-sms-gateway
 CAPCOM6_URL=http://100.126.232.47:8080
 CAPCOM6_USERNAME=sms
-CAPCOM6_PASSWORD=ciSEJNmy
+CAPCOM6_PASSWORD=ciSEJNmY
 ```
 
 ## 📚 Documentation

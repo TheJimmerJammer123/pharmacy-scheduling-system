@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { useStoreScheduling } from "@/hooks/useStoreScheduling";
 import { CalendarPanel } from "./CalendarPanel";
-import { StoreInfoPanel } from "./StoreInfoPanel";
 import { GeneralNotesPanel } from "./GeneralNotesPanel";
 
 interface ImprovedStoreSchedulingProps {
@@ -159,7 +158,7 @@ export const ImprovedStoreScheduling = memo(({ activeTab, setActiveTab }: Improv
       <div className="flex-1 min-h-[600px]">
         <ResizablePanelGroup direction="horizontal" className="min-h-full">
           {/* Calendar Panel */}
-          <ResizablePanel defaultSize={25} minSize={15} id="calendar-panel">
+          <ResizablePanel defaultSize={30} minSize={20} id="calendar-panel">
             <Card className="min-h-[300px] h-full rounded-none border-0 border-r">
               <CardHeader className="pb-3 shrink-0">
                 <CardTitle className="flex items-center gap-2 text-sm">
@@ -181,28 +180,8 @@ export const ImprovedStoreScheduling = memo(({ activeTab, setActiveTab }: Improv
           
           <ResizableHandle withHandle />
           
-          {/* Store Info Panel */}
-          <ResizablePanel defaultSize={25} minSize={15} id="store-info-panel">
-            <Card className="min-h-[300px] h-full rounded-none border-0 border-r">
-              <CardHeader className="pb-3 shrink-0">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Store className="w-4 h-4 text-primary" />
-                  Store Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-auto">
-                <StoreInfoPanel
-                  store={getCurrentStore}
-                  selectedStore={selectedStore}
-                />
-              </CardContent>
-            </Card>
-          </ResizablePanel>
-          
-          <ResizableHandle withHandle />
-          
           {/* Schedules Panel */}
-          <ResizablePanel defaultSize={50} minSize={30} id="schedules-panel">
+          <ResizablePanel defaultSize={70} minSize={50} id="schedules-panel">
             <Card className="min-h-[400px] h-full rounded-none border-0">
               <CardHeader className="pb-3 shrink-0">
                 <CardTitle className="flex items-center gap-2 text-sm">

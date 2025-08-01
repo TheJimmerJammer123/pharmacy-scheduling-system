@@ -25,4 +25,5 @@ export {
   PanelLeft,
   ArrowLeft,
   MapPin,
+  Bot,
 } from "lucide-react";

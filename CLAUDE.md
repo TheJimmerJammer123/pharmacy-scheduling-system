@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ IMPORTANT MCP SERVER USAGE
+
+**n8n Workflow Development**: When working with n8n workflows, automation, or any n8n-related tasks, **ALWAYS use the n8n-mcp server**. This provides comprehensive access to n8n node documentation and workflow assistance.
+
+**References for troubleshooting**:
+- n8n-mcp server issues: https://github.com/czlonkowski/n8n-mcp
+- n8n platform documentation: https://docs.n8n.io
+
 ## Project Overview
 
 This is a comprehensive pharmacy scheduling and communication system designed for pharmacist schedulers to manage employee schedules, handle SMS communications, and interact with an AI chatbot for intelligent scheduling assistance.
@@ -24,6 +32,7 @@ This is a comprehensive pharmacy scheduling and communication system designed fo
 ### Technical Stack
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS + shadcn/ui
 - **Backend**: Self-hosted Supabase (PostgreSQL, PostgREST, GoTrue, Realtime)
+- **Workflow Automation**: Self-hosted n8n for automation and integrations
 - **SMS Gateway**: Capcom6 Android SMS Gateway via Tailscale network
 - **Containerization**: Docker with unified docker-compose.yml
 
@@ -60,6 +69,18 @@ This is a comprehensive pharmacy scheduling and communication system designed fo
 - **Backup & Recovery**: Automated data backup and recovery procedures
 
 ## Development Commands
+
+### Quick Start (After Recent Fixes)
+```bash
+# Start all services (everything auto-initializes)
+docker compose up -d
+
+# Check all services are healthy
+docker compose ps
+
+# Test API endpoints
+curl -H "Authorization: Bearer $ANON_KEY" -H "apikey: $ANON_KEY" http://localhost:8002/rest/v1/stores
+```
 
 ### Docker Services
 ```bash
@@ -108,6 +129,52 @@ open http://localhost:3001
 # Password: this_password_is_insecure_and_should_be_updated
 ```
 
+### n8n Workflow Operations
+```bash
+# Access n8n web interface
+open http://localhost:5678
+# Username: admin (from .env N8N_BASIC_AUTH_USER)
+# Password: from .env N8N_BASIC_AUTH_PASSWORD
+
+# Check n8n container status
+docker compose ps n8n
+
+# View n8n logs
+docker compose logs n8n --tail=20
+
+# Restart n8n service
+docker compose restart n8n
+
+# Check n8n-mcp server status (for AI assistance)
+docker compose ps n8n-mcp
+docker compose logs n8n-mcp --tail=10
+
+# Access n8n database (PostgreSQL with n8n schema)
+psql postgresql://postgres:your-super-secret-and-long-postgres-password@localhost:5433/postgres -c "SET search_path TO n8n; \dt"
+```
+
+### n8n Troubleshooting
+```bash
+# If n8n web interface is not accessible
+docker compose restart n8n kong
+
+# If workflows are not executing
+docker compose logs n8n | grep -i error
+
+# If database connection issues
+docker compose exec db psql -U postgres -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'n8n';"
+
+# Reset n8n data (DESTRUCTIVE - removes all workflows)
+docker compose down n8n
+docker volume rm supabase_n8n_data
+docker compose up -d n8n
+```
+
+**⚠️ Important**: Always use the n8n-mcp server when working with n8n workflows. Reference:
+- n8n-mcp server: https://github.com/czlonkowski/n8n-mcp
+- n8n documentation: https://docs.n8n.io
+```
+
 ## Architecture & Code Organization
 
 ### Directory Structure
@@ -141,7 +208,8 @@ open http://localhost:3001
 
 - **Frontend**: 3000 (Dockerized Vite dev server with hot reload)
 - **Supabase Studio**: 3001 (Docker mapped, accessible from host)
-- **API Gateway (Kong)**: 8002 (main external access point)
+- **n8n Web Interface**: 5678 (workflow automation platform)
+- **API Gateway (Kong)**: 8002 (main external access point) ✅ **CORRECT PORT**
 - **PostgreSQL**: 5433 (external connection via Supavisor)
 - **Connection Pooler**: 6543 (transaction pooling)
 - **Analytics (Logflare)**: 4000 (internal monitoring)
@@ -149,10 +217,33 @@ open http://localhost:3001
 
 ## External Integrations
 
-### Capcom6 SMS Gateway
+### Capcom6 SMS Gateway ✅ FULLY OPERATIONAL
 - **Mode**: Local server via Tailscale network
-- **Authentication**: Basic auth (username: sms, password: ciSEJNmy)
+- **Server URL**: http://100.126.232.47:8080
+- **Authentication**: Basic auth (username: sms, password: ciSEJNmY)
 - **Webhook endpoint**: `/functions/v1/capcom6-webhook`
+- **External webhook URL**: `https://webhook.jammer-industries.com/functions/v1/capcom6-webhook`
+- **Documentation**: 
+  - **Official Repository**: [Capcom6 Android SMS Gateway](https://github.com/capcom6/android-sms-gateway)
+  - **API Documentation**: [Capcom6 API Specification](https://capcom6.github.io/android-sms-gateway/)
+  - **Webhook Format**: Supports both new (`{"event": "sms:received", "payload": {...}}`) and legacy formats
+- **Status**: ✅ Sending and receiving SMS messages working with real-time updates
+
+### n8n Workflow Automation ✅ OPERATIONAL
+- **Web Interface**: http://localhost:5678
+- **Authentication**: Basic auth (admin/configured-password)
+- **Database**: Uses existing PostgreSQL instance with dedicated schema
+- **Use Cases**: 
+  - SMS workflow automation
+  - Schedule change notifications  
+  - Data synchronization between systems
+  - Employee onboarding workflows
+  - Report generation and distribution
+- **MCP Integration**: n8n-mcp server provides AI assistance for workflow creation
+- **Documentation**: 
+  - n8n-mcp server: https://github.com/czlonkowski/n8n-mcp
+  - Official n8n docs: https://docs.n8n.io
+- **⚠️ IMPORTANT**: Always use the n8n-mcp server for AI assistance when working with n8n workflows
 
 ## Project Organization Guidelines
 
@@ -191,11 +282,17 @@ open http://localhost:3001
    - **Context7 MCP**: For general code analysis and documentation
    - **Playwright MCP**: For frontend testing and debugging
    - **Supabase MCP**: For backend database and API operations
-4. **Testing**: Run tests before committing changes
-5. **Documentation**: Update relevant documentation when making changes
-6. **Backend First**: Ensure database schema matches frontend TypeScript types
-7. **API-First**: PostgREST provides auto-generated REST API from database schema
-8. **Real-time**: Use Supabase Realtime for live updates
+   - **n8n MCP**: **MANDATORY** for all n8n workflow development and troubleshooting
+4. **n8n Workflow Development**: 
+   - **ALWAYS** use the n8n-mcp server before creating/modifying workflows
+   - Reference https://github.com/czlonkowski/n8n-mcp for MCP server issues
+   - Reference https://docs.n8n.io for n8n platform documentation
+   - Test workflows in the n8n web interface at http://localhost:5678
+5. **Testing**: Run tests before committing changes
+6. **Documentation**: Update relevant documentation when making changes
+7. **Backend First**: Ensure database schema matches frontend TypeScript types
+8. **API-First**: PostgREST provides auto-generated REST API from database schema
+9. **Real-time**: Use Supabase Realtime for live updates
 
 ## Testing Strategy
 
@@ -206,8 +303,39 @@ open http://localhost:3001
 
 ## Important Development Notes
 
-### Schema Mismatch Issue
-The frontend TypeScript definitions in `src/lib/supabase.ts` define a complete pharmacy database schema, but the actual database only contains basic Supabase tables. Priority should be given to implementing the missing database schema.
+### Database Schema Status ✅ FULLY OPERATIONAL
+The pharmacy database schema is now fully implemented and automatically initialized. The frontend TypeScript definitions in `src/lib/supabase.ts` match the actual database schema. All required tables are created automatically during Docker startup:
+- `stores` - Pharmacy locations (3 sample records)
+- `contacts` - Employee information (4 sample records)  
+- `messages` - SMS communication with **real-time updates enabled**
+- `store_schedules` - Employee scheduling
+- `appointments` - Appointment management
+
+The schema includes proper RLS policies, indexes, triggers, and **Realtime replication** for a production-ready system with live updates.
+
+### REST API Endpoints ✅ FULLY FUNCTIONAL
+The PostgREST API is operational at `http://localhost:8002/rest/v1/` with all pharmacy tables accessible:
+
+**Available Endpoints:**
+- `GET /rest/v1/stores` - Pharmacy locations
+- `GET /rest/v1/contacts` - Employee contacts  
+- `GET /rest/v1/messages` - SMS conversation history
+- `GET /rest/v1/store_schedules` - Employee scheduling data
+- `GET /rest/v1/appointments` - Appointment management
+
+**Authentication:**
+- **Anon Access**: Uses `ANON_KEY` for read operations
+- **Service Role**: Uses `SERVICE_ROLE_KEY` for full CRUD operations
+- **Row Level Security**: Implemented with appropriate policies
+
+**Testing Examples:**
+```bash
+# Test with anon key (read-only)
+curl -H "Authorization: Bearer $ANON_KEY" -H "apikey: $ANON_KEY" http://localhost:8002/rest/v1/stores
+
+# Test with service role (full access)  
+curl -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "apikey: $ANON_KEY" http://localhost:8002/rest/v1/contacts
+```
 
 ### Backend Directory Structure
 The `supabase/` directory contains the actual project backend configuration including Docker Compose setup, database volumes, and Supabase-specific files. This is the working backend for the pharmacy project.
@@ -260,13 +388,38 @@ For Supabase setup issues, refer to the [official Supabase self-hosting document
 - [x] Implement improved Dockerfile.dev based on pharm-scheduling-hub inspiration
 - [x] Enhanced environment variable configuration for SMS gateway and app settings
 - [x] Improved Vite configuration with better IPv6 support and HMR optimization
+- [x] **FIXED DATABASE AUTHENTICATION ISSUES** - Set proper passwords for all database users
+- [x] **IMPLEMENTED PHARMACY DATABASE SCHEMA** - All tables, indexes, triggers, and RLS policies
+- [x] **FIXED FRONTEND CONFIGURATION** - Corrected API URL from port 8000 to 8002
+- [x] **VERIFIED REST API FUNCTIONALITY** - All endpoints operational with proper authentication
+- [x] **ENSURED PERSISTENCE** - Database schema auto-initializes on fresh deployments
+- [x] **ADDED N8N WORKFLOW AUTOMATION** - Self-hosted n8n instance with PostgreSQL integration
+- [x] **INSTALLED N8N-MCP SERVER** - AI assistance for workflow creation and node documentation
+
+### Current System Status ✅ FULLY OPERATIONAL
+**All core systems are working:**
+- ✅ **Docker Services**: All containers running healthy
+- ✅ **Database**: PostgreSQL with complete pharmacy schema  
+- ✅ **REST API**: PostgREST endpoints fully functional
+- ✅ **Frontend**: React app with correct Supabase configuration
+- ✅ **Real-time Updates**: Live message updates with auto-scroll to bottom
+- ✅ **SMS Integration**: Capcom6 gateway fully operational
+  - ✅ **Outbound SMS**: Sending messages via Edge Functions
+  - ✅ **Inbound SMS**: Webhook receiving messages with real-time updates
+  - ✅ **Auto-scroll**: New messages appear at bottom with smooth scrolling
+  - ✅ **Smart Notifications**: Toast notifications only on non-messaging tabs
+- ✅ **Workflow Automation**: n8n platform operational with basic auth
+- ✅ **MCP Integration**: n8n-mcp server providing AI workflow assistance
+- ✅ **AI Chatbot**: Basic AI assistant integrated with OpenRouter API
+- ✅ **Authentication**: Both anon and service role access working
+- ✅ **Persistence**: All configurations survive Docker restarts
 
 ### Next Priority Tasks
-- [ ] Set up Supabase project with scheduling database schema
 - [ ] Implement Excel import functionality
-- [ ] Create AI chatbot integration with SQL query capabilities
+- [ ] Enhance AI chatbot with SQL query capabilities (basic AI chatbot now implemented)
 - [ ] Implement SMS conversation management system
-- [ ] Set up development environment with proper environment variables
+- [ ] Build frontend UI components for pharmacy management
+- [ ] Add real-time subscriptions for live data updates
 
 ## MCP Server Integration
 
@@ -298,6 +451,28 @@ This project uses the following MCP servers for enhanced development capabilitie
   - Authentication setup
   - Real-time subscriptions
   - Backend API development
+
+### n8n MCP Server ✅ INSTALLED & REQUIRED FOR N8N WORK
+- **Purpose**: AI assistance for n8n workflow creation and documentation
+- **Container**: n8n-mcp running alongside n8n instance  
+- **Repository**: https://github.com/czlonkowski/n8n-mcp
+- **Usage**: **ALWAYS use this MCP server when working with n8n**
+- **Features**: 
+  - 532 n8n nodes with 99% property coverage
+  - Node documentation and examples
+  - Workflow validation assistance
+  - Integration guidance for pharmacy-specific automation
+- **⚠️ MANDATORY for**:
+  - Creating SMS automation workflows
+  - Building schedule notification systems
+  - Integrating pharmacy systems with n8n
+  - Automating employee onboarding workflows
+  - Setting up data synchronization workflows
+  - Any n8n workflow development or troubleshooting
+- **Troubleshooting**: 
+  - n8n-mcp issues: https://github.com/czlonkowski/n8n-mcp/issues
+  - n8n platform issues: https://docs.n8n.io
+  - Container status: `docker compose logs n8n-mcp`
 
 ### Docker Operations & MCP Integration
 

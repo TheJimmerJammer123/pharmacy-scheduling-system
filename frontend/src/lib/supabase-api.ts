@@ -134,7 +134,7 @@ export class SupabaseApiClient {
     return this.wrapResponse(data, error);
   }
 
-  static async updateContact(id: string, contact: UpdateContactRequest): Promise<ApiResponse<Contact>> {
+  static async updateContact(id: string | number, contact: UpdateContactRequest): Promise<ApiResponse<Contact>> {
     const { data, error } = await supabase
       .from('contacts')
       .update(contact)
@@ -145,7 +145,7 @@ export class SupabaseApiClient {
     return this.wrapResponse(data, error);
   }
 
-  static async deleteContact(id: string): Promise<ApiResponse<void>> {
+  static async deleteContact(id: string | number): Promise<ApiResponse<void>> {
     const { error } = await supabase
       .from('contacts')
       .delete()
@@ -169,11 +169,11 @@ export class SupabaseApiClient {
     return this.wrapResponse(data, error);
   }
 
-  static async getContactMessages(contactId: string): Promise<ApiResponse<Message[]>> {
+  static async getContactMessages(contactId: string | number): Promise<ApiResponse<Message[]>> {
     const { data, error } = await supabase
       .from('messages')
       .select('*')
-      .eq('contact_id', contactId)
+      .eq('contact_id', contactId.toString())
       .order('created_at', { ascending: true });
 
     return this.wrapResponse(data, error);
@@ -202,7 +202,7 @@ export class SupabaseApiClient {
     return this.wrapResponse(data, error);
   }
 
-  static async deleteMessage(id: string): Promise<ApiResponse<void>> {
+  static async deleteMessage(id: string | number): Promise<ApiResponse<void>> {
     const { error } = await supabase
       .from('messages')
       .delete()
@@ -211,19 +211,48 @@ export class SupabaseApiClient {
     return this.wrapResponse(null, error);
   }
 
-  static async sendSMS(contactId: string, message: string, requiresAcknowledgment?: boolean): Promise<ApiResponse<Message>> {
-    return this.createMessage({
-      contact_id: contactId,
-      content: message,
-      direction: 'outbound',
-      ai_generated: false
-    });
+  static async sendSMS(contactId: string | number, message: string, requiresAcknowledgment?: boolean): Promise<ApiResponse<any>> {
+    try {
+      // Use the Edge Function to send SMS via Capcom6
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          contact_id: contactId.toString(),
+          message: message,
+          ai_generated: false,
+          requires_acknowledgment: requiresAcknowledgment || false
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || 'Failed to send SMS'
+        };
+      }
+
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Network error sending SMS'
+      };
+    }
   }
 
   // Get contacts with last message info
   static async getContactsWithMessages(): Promise<ApiResponse<ContactWithLastMessage[]>> {
     const [contactsResponse, messagesResponse] = await Promise.all([
-      this.getContacts({ status: 'active' }),
+      this.getContacts(),
       this.getMessages()
     ]);
 

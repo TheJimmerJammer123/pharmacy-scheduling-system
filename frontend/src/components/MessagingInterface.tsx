@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, memo } from "react";
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 import { Send, Search, MoreVertical, Clock, Check, CheckCheck, Trash2, Loader2, Sparkles, FileText, Store } from "@/lib/icons";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ApiClient, ContactWithLastMessage, Message } from "@/lib/supabase-api";
+import { SMSApiClient } from "@/lib/sms-api";
 
 interface MessagingInterfaceProps {
   activeTab: string;
@@ -44,7 +46,7 @@ interface ConversationSummary {
 }
 
 export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingInterfaceProps) => {
-  const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [requiresAcknowledgment, setRequiresAcknowledgment] = useState(false);
@@ -55,6 +57,10 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Add ref for messages container to enable auto-scroll
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  
   // Summarization state
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [conversationSummary, setConversationSummary] = useState<ConversationSummary | null>(null);
@@ -62,11 +68,11 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
   const [isAddingToDailySummary, setIsAddingToDailySummary] = useState(false);
 
   // Selection state for bulk operations
-  const [selectedMessages, setSelectedMessages] = useState<Set<number>>(new Set());
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   // Selection state for summarization
-  const [selectedForSummarization, setSelectedForSummarization] = useState<Set<number>>(new Set());
+  const [selectedForSummarization, setSelectedForSummarization] = useState<Set<string>>(new Set());
   const [isSummarizationSelectionMode, setIsSummarizationSelectionMode] = useState(false);
   const [selectedStoreNumber, setSelectedStoreNumber] = useState<number>(1);
 
@@ -79,6 +85,18 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
   });
 
   const { toast } = useToast();
+
+  // Auto-scroll to bottom of messages
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
+
+  // Scroll to bottom when messages change or when new message is added
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   // Fetch contacts with last message info
   const fetchContacts = useCallback(async () => {
@@ -114,16 +132,18 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
   }, [selectedContactId, toast]);
 
   // Fetch messages for selected contact
-  const fetchMessages = useCallback(async (contactId: number) => {
+  const fetchMessages = useCallback(async (contactId: string) => {
     setIsLoadingMessages(true);
 
     console.log("[MessagingInterface] fetchMessages: Fetching messages for contactId", contactId);
     try {
-      const response = await ApiClient.getContactMessages(contactId);
+      const response = await SMSApiClient.getContactMessages(contactId);
       console.log("[MessagingInterface] fetchMessages: Response", response);
 
       if (response.success && response.data) {
         setMessages(response.data);
+        // Scroll to bottom after messages are loaded
+        setTimeout(() => scrollToBottom(), 300);
       } else {
         toast({
           variant: "destructive",
@@ -164,6 +184,86 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
     }
   }, [selectedContactId, contacts, fetchMessages]);
 
+  // Set up real-time subscription and periodic refresh for messages
+  useEffect(() => {
+    if (!selectedContactId) return;
+
+    console.log('[MessagingInterface] Setting up realtime subscription for contact:', selectedContactId);
+    
+    // Set up real-time subscription with error handling
+    const subscription = supabase
+      .channel(`messages_${selectedContactId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `contact_id=eq.${selectedContactId}`
+        },
+        (payload) => {
+          console.log('[MessagingInterface] Realtime message update received:', {
+            eventType: payload.eventType,
+            table: payload.table,
+            schema: payload.schema,
+            new: payload.new,
+            old: payload.old,
+            filter: `contact_id=eq.${selectedContactId}`
+          });
+          
+          if (payload.eventType === 'INSERT') {
+            console.log('[MessagingInterface] Processing INSERT event for new message');
+            setMessages(prev => {
+              const newMessage = payload.new as Message;
+              console.log('[MessagingInterface] Adding new message to state:', newMessage);
+              const updatedMessages = [...prev, newMessage];
+              // Trigger scroll to bottom after state update
+              setTimeout(() => scrollToBottom(), 100);
+              return updatedMessages;
+            });
+            
+            // Show toast for new incoming messages only if not on messaging tab
+            if ((payload.new as Message).direction === 'inbound' && activeTab !== 'messages') {
+              toast({
+                title: "New message received",
+                description: `From ${selectedContact?.name || 'Unknown'}: ${(payload.new as Message).content.substring(0, 50)}${(payload.new as Message).content.length > 50 ? '...' : ''}`
+              });
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            console.log('[MessagingInterface] Processing UPDATE event for message');
+            setMessages(prev => prev.map(msg => 
+              msg.id === payload.new.id ? payload.new as Message : msg
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            console.log('[MessagingInterface] Processing DELETE event for message');
+            setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe((status, err) => {
+        console.log('[MessagingInterface] Realtime subscription status:', status, err);
+        if (status === 'SUBSCRIBED') {
+          console.log('[MessagingInterface] Successfully subscribed to realtime updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[MessagingInterface] Realtime subscription error:', err);
+        } else if (status === 'TIMED_OUT') {
+          console.error('[MessagingInterface] Realtime subscription timed out');
+        }
+      });
+
+    // Fallback: Periodic refresh every 2 minutes in case real-time fails
+    const refreshInterval = setInterval(() => {
+      console.log('[MessagingInterface] Periodic refresh of messages');
+      fetchMessages(selectedContactId);
+    }, 120000);
+
+    return () => {
+      console.log('[MessagingInterface] Cleaning up realtime subscription and interval');
+      supabase.removeChannel(subscription);
+      clearInterval(refreshInterval);
+    };
+  }, [selectedContactId, fetchMessages]);
+
   // Handle sending a message
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedContactId || isSending) return;
@@ -177,7 +277,11 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
     });
 
     try {
-      const response = await ApiClient.sendSMS(selectedContactId, newMessage.trim(), requiresAcknowledgment);
+      const response = await SMSApiClient.sendSMS({
+        contactId: selectedContactId,
+        message: newMessage.trim(),
+        requiresAcknowledgment
+      });
       console.log("[MessagingInterface] handleSendMessage: Response", response);
 
       if (response.success) {
@@ -191,6 +295,8 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
         await fetchMessages(selectedContactId);
         // Refresh contacts to update last message
         await fetchContacts();
+        // Scroll to bottom to show the new sent message
+        setTimeout(() => scrollToBottom(), 200);
       } else {
         toast({
           variant: "destructive",
@@ -263,7 +369,7 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
     try {
       // Delete all messages for this contact
       const deletePromises = messages.map(message => 
-        ApiClient.deleteMessage(message.id!)
+        SMSApiClient.deleteMessage(message.id!)
       );
       
       await Promise.all(deletePromises);
@@ -300,7 +406,7 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
     try {
       // Delete selected messages
       const deletePromises = Array.from(selectedMessages).map(messageId => 
-        ApiClient.deleteMessage(messageId)
+        SMSApiClient.deleteMessage(messageId)
       );
       
       await Promise.all(deletePromises);
@@ -336,7 +442,7 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
   };
 
   // Toggle message selection
-  const toggleMessageSelection = (messageId: number) => {
+  const toggleMessageSelection = (messageId: string) => {
     const newSelected = new Set(selectedMessages);
     if (newSelected.has(messageId)) {
       newSelected.delete(messageId);
@@ -353,7 +459,7 @@ export const MessagingInterface = memo(({ activeTab, onDataChange }: MessagingIn
   };
 
   // Toggle message selection for summarization
-  const toggleSummarizationSelection = (messageId: number) => {
+  const toggleSummarizationSelection = (messageId: string) => {
     console.log("[MessagingInterface] toggleSummarizationSelection: Toggling message", messageId);
     console.log("[MessagingInterface] toggleSummarizationSelection: Current selectedForSummarization", Array.from(selectedForSummarization));
     
@@ -835,6 +941,24 @@ ${conversationSummary.actionItems.join('\n')}`,
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => {
+                          if (selectedContactId) {
+                            fetchMessages(selectedContactId);
+                            toast({
+                              title: "Messages refreshed",
+                              description: "Checking for new messages..."
+                            });
+                          }
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
                         onClick={isSummarizationSelectionMode ? handleSummarizeConversation : toggleSummarizationSelectionMode}
                         disabled={isSummarizing || messages.length === 0}
                         className={`${isSummarizationSelectionMode ? 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/20' : 'text-primary hover:text-primary/80'}`}
@@ -938,19 +1062,20 @@ ${conversationSummary.actionItems.join('\n')}`,
                           No messages yet. Start the conversation!
                         </div>
                       ) : (
-                        messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`flex group ${message.direction === 'outbound' ? "justify-end" : "justify-start"}`}
-                          >
+                        <>
+                          {messages.map((message) => (
                             <div
-                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
-                                message.direction === 'outbound'
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground"
-                              } ${isSelectionMode && selectedMessages.has(message.id!) ? "ring-2 ring-primary ring-offset-2" : ""} ${isSummarizationSelectionMode && selectedForSummarization.has(message.id!) ? "ring-2 ring-blue-500 ring-offset-2" : ""}`}
-                              style={{ wordBreak: "break-word" }}
+                              key={message.id}
+                              className={`flex group ${message.direction === 'outbound' ? "justify-end" : "justify-start"}`}
                             >
+                              <div
+                                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
+                                  message.direction === 'outbound'
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                } ${isSelectionMode && selectedMessages.has(message.id!) ? "ring-2 ring-primary ring-offset-2" : ""} ${isSummarizationSelectionMode && selectedForSummarization.has(message.id!) ? "ring-2 ring-blue-500 ring-offset-2" : ""}`}
+                                style={{ wordBreak: "break-word" }}
+                              >
                               {isSelectionMode && (
                                 <div className="absolute -left-2 -top-2">
                                   <input
@@ -997,7 +1122,10 @@ ${conversationSummary.actionItems.join('\n')}`,
                               )}
                             </div>
                           </div>
-                        ))
+                        ))}
+                          {/* Scroll to bottom target */}
+                          <div ref={messagesEndRef} />
+                        </>
                       )}
                     </div>
                   )}

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8000'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8002'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -26,6 +26,7 @@ export interface Database {
           notes: string | null
           total_messages: number
           total_appointments: number
+          ai_enabled: boolean
           created_at: string
           updated_at: string
         }
@@ -39,6 +40,7 @@ export interface Database {
           notes?: string | null
           total_messages?: number
           total_appointments?: number
+          ai_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -52,6 +54,7 @@ export interface Database {
           notes?: string | null
           total_messages?: number
           total_appointments?: number
+          ai_enabled?: boolean
           updated_at?: string
         }
       }
@@ -62,12 +65,13 @@ export interface Database {
           content: string
           direction: 'inbound' | 'outbound'
           status: 'pending' | 'sent' | 'delivered' | 'failed' | 'read'
-          twilio_sid: string | null
+          capcom6_message_id: string | null
           ai_generated: boolean
           requires_acknowledgment: boolean
           acknowledgment_code: string | null
           acknowledged_at: string | null
           acknowledgment_message_id: string | null
+          metadata: any | null
           created_at: string
         }
         Insert: {
@@ -76,12 +80,14 @@ export interface Database {
           content: string
           direction: 'inbound' | 'outbound'
           status?: 'pending' | 'sent' | 'delivered' | 'failed' | 'read'
-          twilio_sid?: string | null
+          capcom6_message_id?: string | null
           ai_generated?: boolean
           requires_acknowledgment?: boolean
           acknowledgment_code?: string | null
           acknowledged_at?: string | null
           acknowledgment_message_id?: string | null
+          metadata?: any | null
+          metadata?: any | null
           created_at?: string
         }
         Update: {
@@ -90,12 +96,13 @@ export interface Database {
           content?: string
           direction?: 'inbound' | 'outbound'
           status?: 'pending' | 'sent' | 'delivered' | 'failed' | 'read'
-          twilio_sid?: string | null
+          capcom6_message_id?: string | null
           ai_generated?: boolean
           requires_acknowledgment?: boolean
           acknowledgment_code?: string | null
           acknowledged_at?: string | null
           acknowledgment_message_id?: string | null
+          metadata?: any | null
         }
       }
       stores: {
