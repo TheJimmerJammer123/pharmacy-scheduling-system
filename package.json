@@ -1,0 +1,42 @@
+{
+  "name": "pharm-project",
+  "version": "1.0.0",
+  "description": "A comprehensive pharmacy scheduling and communication system designed for pharmacist schedulers to manage employee schedules, handle SMS communications, and interact with an AI chatbot for intelligent scheduling assistance.",
+  "main": "scripts/data-processing/import-complete-dataset.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "data:import": "node scripts/data-processing/import-complete-dataset.js",
+    "dev": "docker compose up -d",
+    "stop": "docker compose down",
+    "reset": "docker compose down -v && docker compose up -d",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:test": "cd frontend && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheJimmerJammer123/pharm-scheduling-project.git"
+  },
+  "keywords": [
+    "pharmacy",
+    "scheduling",
+    "healthcare",
+    "sms",
+    "ai-chatbot",
+    "supabase",
+    "react",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TheJimmerJammer123/pharm-scheduling-project/issues"
+  },
+  "homepage": "https://github.com/TheJimmerJammer123/pharm-scheduling-project#readme",
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

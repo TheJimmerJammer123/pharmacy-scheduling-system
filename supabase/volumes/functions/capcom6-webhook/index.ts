@@ -55,6 +55,8 @@ serve(async (req) => {
   }
 
   try {
+    // For now, use direct database connection to bypass JWT issues
+    console.log('Creating Supabase client...')
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? 'http://kong:8000',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -65,6 +67,9 @@ serve(async (req) => {
         }
       }
     )
+    
+    console.log('Supabase URL:', Deno.env.get('SUPABASE_URL'))
+    console.log('Service role key length:', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.length)
 
     // Parse the webhook payload from Capcom6 with error handling
     let rawPayload: any;

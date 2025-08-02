@@ -1,6 +1,63 @@
-# CLAUDE.md
+# 🏥 PHARMACY SCHEDULING SYSTEM - Claude Code Project
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 🎯 **PROJECT OVERVIEW**
+
+### **Core Purpose**
+A modern, AI-powered pharmacy scheduling and communication system that provides:
+- **Employee Management**: Complete employee information and profile management
+- **Schedule Management**: Multi-store scheduling with historical data tracking
+- **SMS Communication**: Direct messaging with employees via Capcom6 gateway
+- **AI Analytics**: Intelligent chatbot with comprehensive data access and query capabilities
+- **Document Ingestion**: Advanced multi-format document processing (Excel, PDF, CSV)
+- **Message History**: Complete SMS conversation tracking and storage
+
+### **Key Features**
+
+#### **Frontend UI Components**
+- **Employee Dashboard**: Employee profiles, contact information, role management
+- **Schedule Interface**: Multi-store grid layout, shift assignment, historical views
+- **SMS Communication**: Message threads, contact management, conversation history
+- **AI Chatbot**: Analytical queries about employees, stores, and schedules
+- **Data Import**: Excel file upload and processing interface
+
+#### **Backend Services**
+- **Database**: Supabase PostgreSQL with perpetual data storage
+- **AI Integration**: OpenRouter with Qwen3 Coder model for analytics
+- **SMS Gateway**: Capcom6 integration for employee messaging
+- **Workflow Automation**: n8n middleware for system integration
+- **Data Processing**: Excel file ingestion and data transformation
+
+#### **AI Capabilities**
+- **Comprehensive Data Access**: AI has access to all database tables, REST API endpoints, and query tools
+- **Intelligent Query Strategy**: AI determines the best approach (REST API, SQL, SMS, n8n) for each query
+- **Employee Analytics**: Query employee schedules, PTO, work patterns
+- **Store Analytics**: Store performance, scheduling efficiency, coverage analysis
+- **Schedule Analytics**: Historical trends, conflict detection, optimization insights
+- **Employee Chat**: Limited AI assistance for employee queries
+- **User Chat**: Full analytical capabilities for management users
+
+### **Data Flow**
+1. **Document Ingestion**: Multi-format files (Excel, PDF, CSV) → Advanced processing pipeline → Database ingestion
+2. **Schedule Management**: Real-time schedule updates and historical tracking
+3. **SMS Communication**: User ↔ Employee messaging via Capcom6
+4. **AI Analytics**: Natural language queries → Intelligent query strategy selection → Multi-source data retrieval → Insights
+5. **Message Storage**: All conversations stored perpetually in database
+
+### **User Workflows**
+- **Management**: Full access to all features, AI analytics, employee messaging
+- **Employees**: Limited access to schedules, SMS communication, restricted AI chat
+- **System**: Automated data processing, message routing, AI response generation
+
+### **Development Roadmap**
+- **Phase 1**: ✅ Core UI and database setup
+- **Phase 2**: ✅ Advanced document ingestion system (Excel, PDF, CSV)
+- **Phase 3**: ✅ SMS integration with Capcom6
+- **Phase 4**: 🔄 AI chatbot with comprehensive data access and intelligent query strategies
+- **Phase 5**: Advanced analytics and optimization
+- **Phase 6**: ✅ n8n workflow automation
+- **Phase 7**: Production deployment and monitoring
 
 ## ⚠️ IMPORTANT MCP SERVER USAGE
 
@@ -15,11 +72,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a comprehensive pharmacy scheduling and communication system designed for pharmacist schedulers to manage employee schedules, handle SMS communications, and interact with an AI chatbot for intelligent scheduling assistance.
 
 ### Core Functionality
-1. **Schedule Management**: Import Excel scheduling data and provide multi-store, multi-employee access
-2. **SMS Communication**: Two-way messaging with employees using Capcom6 SMS Gateway
-3. **AI Chatbot**: Intelligent assistant with SQL query capabilities for scheduling questions
-4. **Smart Conversation Management**: Toggle between AI and direct human communication per employee
-5. **Data Integration**: Excel import, database storage, and real-time synchronization
+1. **Document Ingestion**: Advanced multi-format document processing (Excel, PDF, CSV) with intelligent data mapping
+2. **Schedule Management**: Multi-store, multi-employee scheduling with historical data tracking
+3. **SMS Communication**: Two-way messaging with employees using Capcom6 SMS Gateway
+4. **AI Chatbot**: Comprehensive intelligent assistant with access to all data endpoints and intelligent query strategy selection
+5. **Smart Conversation Management**: Toggle between AI and direct human communication per employee
+6. **Data Integration**: Multi-source data integration with real-time synchronization
 
 ### Key Features
 - **Excel Import**: Load scheduling data from existing Excel workflows
@@ -32,16 +90,20 @@ This is a comprehensive pharmacy scheduling and communication system designed fo
 ### Technical Stack
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS + shadcn/ui
 - **Backend**: Self-hosted Supabase (PostgreSQL, PostgREST, GoTrue, Realtime)
+- **AI Integration**: OpenRouter API with Qwen3 Coder model
 - **Workflow Automation**: Self-hosted n8n for automation and integrations
 - **SMS Gateway**: Capcom6 Android SMS Gateway via Tailscale network
+- **Document Processing**: Advanced multi-format ingestion (Excel, PDF, CSV) with intelligent mapping
 - **Containerization**: Docker with unified docker-compose.yml
+- **Version Control**: Git with GitHub for change tracking and rollback capability
 
 ## Core Features & Requirements
 
 ### 📅 Schedule Management
-- **Excel Import**: Load scheduling data from Excel files for all stores and employees
+- **Excel Import**: Multi-tabbed Excel file ingestion for regular data updates
 - **Multi-Store View**: Access and manage schedules across all pharmacy locations
 - **Employee Database**: Comprehensive employee information and scheduling history
+- **Historical Tracking**: Perpetual storage of all schedule data for analytics
 - **Real-time Updates**: Live schedule updates and notifications
 
 ### 💬 SMS Communication
@@ -51,10 +113,17 @@ This is a comprehensive pharmacy scheduling and communication system designed fo
 - **Bulk Messaging**: Send notifications to multiple employees simultaneously
 
 ### 🤖 AI Chatbot Integration
-- **Intelligent Assistant**: AI chatbot for scheduling queries and employee questions
-- **SQL Query Capabilities**: Direct database access for real-time schedule information
-- **Contextual Responses**: AI understands pharmacy scheduling context and terminology
-- **Employee Support**: Automated responses to common scheduling questions
+- **Comprehensive Data Access**: AI has access to all database tables, REST API endpoints, and query tools
+- **Intelligent Query Strategy Selection**: AI determines the best approach for each query:
+  - **REST API Queries**: For simple data retrieval and filtering
+  - **Direct SQL Queries**: For complex joins, aggregations, and custom analysis
+  - **SMS Integration**: For sending messages and checking communication status
+  - **n8n Workflows**: For triggering automated processes and bulk operations
+- **Multi-Source Data Retrieval**: Combine data from multiple sources for comprehensive insights
+- **Analytical Queries**: Employee, store, and schedule analytics via natural language
+- **Dual-Mode Chat**: Full analytics for management, limited queries for employees
+- **Qwen3 Coder Model**: OpenRouter integration for advanced AI capabilities
+- **Real-Time Processing**: Live data access and instant response generation
 
 ### 🔄 Smart Conversation Management
 - **Conversation Toggle**: Switch between AI chatbot and direct human communication
@@ -62,11 +131,38 @@ This is a comprehensive pharmacy scheduling and communication system designed fo
 - **Selective AI**: Other employees continue to interact with chatbot during direct conversations
 - **Seamless Handoff**: Easy transition between AI and human communication modes
 
+### 📄 Document Ingestion System
+- **Multi-Format Support**: Excel (.xlsx, .xls), CSV (.csv), PDF (.pdf) file processing
+- **Advanced Processing Pipeline**: Intelligent data extraction, validation, and transformation
+- **Configurable Data Mapping**: Flexible column mapping and transformation rules
+- **Progress Tracking**: Real-time upload and processing status monitoring
+- **Import History**: Complete audit trail of all document imports and processing results
+- **Error Handling**: Comprehensive error reporting and recovery mechanisms
+- **Template-Based Processing**: Pre-configured templates for different document types
+- **Batch Processing**: Support for multiple file uploads and processing
+
 ### 📊 Data Management
-- **Excel Integration**: Import scheduling data from existing Excel workflows
-- **Database Storage**: Secure storage of schedules, messages, and employee data
+- **Document Integration**: Multi-format document import with intelligent data transformation
+- **Database Storage**: Perpetual storage of schedules, messages, employee data, and import history
 - **Real-time Sync**: Live synchronization between frontend and database
+- **Message History**: Complete SMS conversation storage and retrieval
 - **Backup & Recovery**: Automated data backup and recovery procedures
+- **Version Control**: Git tracking for all changes with rollback capability
+
+## 🔄 **DEVELOPMENT WORKFLOW & VERSION CONTROL**
+
+### **Git Workflow**
+- **Frequent Commits**: Regular commits to track progress and changes
+- **Feature Branches**: Separate branches for major features and changes
+- **Pull Requests**: Code review and testing before merging
+- **Rollback Capability**: Easy reversion to previous versions if needed
+- **GitHub Integration**: Remote repository for backup and collaboration
+
+### **Change Management**
+- **Incremental Development**: Small, testable changes with frequent commits
+- **Documentation Updates**: Keep CLAUDE.md and subagents current
+- **Testing Strategy**: Test each component before integration
+- **Rollback Planning**: Maintain ability to revert to stable versions
 
 ## Development Commands
 
@@ -191,18 +287,21 @@ docker compose up -d n8n
 - **Styling**: Tailwind CSS with custom design system
 - **Testing**: Jest + React Testing Library
 
-### Database Schema (Expected vs Actual)
-**Frontend expects these tables:**
-- `contacts` - Employee contact information
-- `messages` - SMS conversation history  
-- `stores` - Pharmacy locations
-- `store_schedules` - Employee scheduling data
-- `appointments` - Appointment management
+### Database Schema (Complete Implementation)
+**Core Pharmacy Tables:**
+- `stores` - Pharmacy locations and information
+- `contacts` - Employee contact information and profiles
+- `store_schedules` - Employee scheduling data and shift assignments
+- `messages` - SMS conversation history with Capcom6 integration
+- `appointments` - Appointment management and scheduling
 
-**Current database has:**
-- `profiles` - Basic user profiles only
+**Document Ingestion System Tables:**
+- `document_imports` - Track file uploads and processing status
+- `import_history` - Detailed import records and processing results
+- `data_mappings` - Column mapping configurations for different file types
+- `processing_templates` - Processing templates for different document formats
 
-**Action needed:** Database migrations must be created to match frontend expectations.
+**Status:** ✅ All tables implemented with complete schema, indexes, triggers, and RLS policies
 
 ## Service Ports
 
@@ -239,11 +338,37 @@ docker compose up -d n8n
   - Data synchronization between systems
   - Employee onboarding workflows
   - Report generation and distribution
-- **MCP Integration**: n8n-mcp server provides AI assistance for workflow creation
+- **MCP Integration**: ✅ n8n-mcp server installed globally via npx
+  - **Installation**: `npx n8n-mcp` (auto-installs and runs)
+  - **Claude Code Configuration**: Add to your Claude Code MCP settings:
+    ```json
+    {
+      "mcpServers": {
+        "n8n-mcp": {
+          "command": "npx",
+          "args": ["n8n-mcp"],
+          "env": {
+            "MCP_MODE": "stdio",
+            "LOG_LEVEL": "error",
+            "DISABLE_CONSOLE_OUTPUT": "true"
+          }
+        }
+      }
+    }
+    ```
+  - **Configuration Location**: Add to your Claude Code settings file
+  - **Features**: 532 n8n nodes with 99% property coverage, workflow assistance
 - **Documentation**: 
   - n8n-mcp server: https://github.com/czlonkowski/n8n-mcp
   - Official n8n docs: https://docs.n8n.io
-- **⚠️ IMPORTANT**: Always use the n8n-mcp server for AI assistance when working with n8n workflows
+- **⚠️ IMPORTANT**: Configure n8n-mcp in Claude Code settings to enable AI workflow assistance
+
+### Edge Functions ✅ OPERATIONAL
+- **Document Upload**: `/functions/v1/document-upload` - Handle file uploads and validation
+- **Excel Processing**: `/functions/v1/process-excel` - Process Excel files and import data
+- **AI Chat Response**: `/functions/v1/ai-chat-response-sql` - AI-driven SQL analysis
+- **SMS Integration**: `/functions/v1/send-sms-v3` - Send SMS via Capcom6
+- **Webhook Processing**: `/functions/v1/capcom6-webhook` - Process incoming SMS
 
 ## Project Organization Guidelines
 
@@ -323,6 +448,12 @@ The PostgREST API is operational at `http://localhost:8002/rest/v1/` with all ph
 - `GET /rest/v1/store_schedules` - Employee scheduling data
 - `GET /rest/v1/appointments` - Appointment management
 
+**Document Ingestion Endpoints:**
+- `GET /rest/v1/document_imports` - Import history and status
+- `GET /rest/v1/import_history` - Detailed import records
+- `GET /rest/v1/data_mappings` - Column mapping configurations
+- `GET /rest/v1/processing_templates` - Processing templates
+
 **Authentication:**
 - **Anon Access**: Uses `ANON_KEY` for read operations
 - **Service Role**: Uses `SERVICE_ROLE_KEY` for full CRUD operations
@@ -395,6 +526,10 @@ For Supabase setup issues, refer to the [official Supabase self-hosting document
 - [x] **ENSURED PERSISTENCE** - Database schema auto-initializes on fresh deployments
 - [x] **ADDED N8N WORKFLOW AUTOMATION** - Self-hosted n8n instance with PostgreSQL integration
 - [x] **INSTALLED N8N-MCP SERVER** - AI assistance for workflow creation and node documentation
+- [x] **IMPLEMENTED ADVANCED DOCUMENT INGESTION SYSTEM** - Multi-format support (Excel, PDF, CSV) with intelligent processing
+- [x] **CREATED DOCUMENT UPLOAD FRONTEND** - Drag-and-drop interface with progress tracking and import history
+- [x] **BUILT PROCESSING PIPELINE** - Excel processing with data mapping and validation
+- [x] **ADDED IMPORT MANAGEMENT** - Complete audit trail and status tracking for all document imports
 
 ### Current System Status ✅ FULLY OPERATIONAL
 **All core systems are working:**
@@ -415,11 +550,11 @@ For Supabase setup issues, refer to the [official Supabase self-hosting document
 - ✅ **Persistence**: All configurations survive Docker restarts
 
 ### Next Priority Tasks
-- [ ] Implement Excel import functionality
-- [ ] Enhance AI chatbot with SQL query capabilities (basic AI chatbot now implemented)
-- [ ] Implement SMS conversation management system
-- [ ] Build frontend UI components for pharmacy management
-- [ ] Add real-time subscriptions for live data updates
+- [ ] **Create Comprehensive AI Chatbot** - Implement AI with access to all data endpoints and intelligent query strategy selection
+- [ ] **Upload and Process Excel Data** - Load actual pharmacy data using the document ingestion system
+- [ ] **Enhance AI Query Capabilities** - Implement multi-source data retrieval and intelligent query routing
+- [ ] **Build Advanced Analytics Dashboard** - Create comprehensive reporting and analytics interface
+- [ ] **Implement Real-time Data Updates** - Add live data synchronization and notifications
 
 ## MCP Server Integration
 
@@ -495,3 +630,60 @@ When working with Docker containers and services, use appropriate tools for:
 - Volume mounting and data persistence
 - Environment variable management
 - Port mapping and network configuration
+
+## 📋 **SUBAGENT REFERENCE FILES**
+
+The following subagent markdown files provide specialized context for Claude Code, aligned with the project roadmap and core requirements:
+
+| File | Size | Purpose | Key Areas | When to Use |
+|------|------|---------|-----------|-------------|
+| `.claude/agents/frontend-developer.md` | 6.8KB | Frontend development | React, TypeScript, Tailwind CSS, Docker-only workflow, Plan→Act→Review | Frontend components, UI development, styling, employee data protection |
+| `.claude/agents/backend-developer.md` | 15.2KB | Backend development | Supabase, PostgreSQL, Edge Functions, API development, Plan→Act→Review | Database schema, API endpoints, backend logic, employee data protection |
+| `.claude/agents/sms-troubleshooter.md` | 11KB | SMS troubleshooting | Capcom6 gateway, webhook processing, SMS diagnostics, Plan→Act→Review | SMS issues, webhook problems, Capcom6 troubleshooting, employee data protection |
+| `.claude/agents/n8n-automation.md` | 12KB | n8n workflow automation | n8n-mcp server, workflow creation, automation, Plan→Act→Review | Workflow automation, n8n configuration, automation tasks, employee data protection |
+| `.claude/agents/docker-manager.md` | 11KB | Docker management | Docker Compose v2.38.2, container orchestration, service management, Plan→Act→Review | Docker operations, container management, service deployment, employee data protection |
+| `.claude/agents/code-reviewer.md` | 8.5KB | Code review & security | Employee data protection, security audit, code quality | Code review, security validation, compliance checks |
+| `.claude/agents/test-runner.md` | 9.8KB | Automated testing | Test execution, quality assurance, pharmacy validation | Test running, failure analysis, continuous testing |
+| `.claude/agents/workflow-orchestrator.md` | 7.2KB | Workflow coordination | Plan→Act→Review, subagent coordination, process management | Complex tasks, feature implementation, workflow management |
+| `.claude/agents/data-processor.md` | 12.5KB | Excel processing & AI integration | Excel ingestion, data transformation, OpenRouter/Qwen3 Coder, analytics | Excel import, AI integration, analytical queries, data processing |
+| `.claude/agents/project-organizer.md` | 4.2KB | Project organization & file management | File organization, documentation updates, code refactoring, structure maintenance | File moves, documentation updates, project structure, organization standards |
+| `.claude/agents/mcp-server-developer.md` | 5.8KB | MCP server development & management | MCP protocol, server development, tool integration, external service connectivity | MCP servers, tool integration, protocol implementation, service connectivity |
+
+**Total Subagent Coverage**: 104.6KB of specialized knowledge
+
+**Note**: All subagents are now properly formatted according to the [official Claude Code subagents documentation](https://docs.anthropic.com/en/docs/claude-code/sub-agents) with YAML frontmatter, correct naming conventions, and proper tool specifications.
+
+### **Best Practices Applied from Research**
+
+Based on research from [Apidog's sub-agent guide](https://apidog.com/blog/claude-code-sub-agents/), [Jewel Huq's practical guide](https://jewelhuq.medium.com/practical-guide-to-mastering-claude-codes-main-agent-and-sub-agents-fd52952dcf00), and [Cuong's deep dive](https://cuong.io/blog/2025/06/24-claude-code-subagent-deep-dive), we've implemented and **enhanced all subagents** with:
+
+#### **Workflow Management**
+- **Plan → Act → Review**: Structured development workflow with clear phases
+- **Task Specialization**: Each subagent has focused, non-overlapping responsibilities
+- **Parallel Processing**: Subagents can work independently and in parallel
+- **Context Isolation**: Each subagent maintains its own context window
+
+#### **Security & Safety**
+- **Least-Privilege Tools**: Granular tool access control per subagent
+- **HIPAA Compliance**: Pharmacy-specific security and compliance focus
+- **Quality Gates**: Mandatory code review, testing, and security validation
+- **Rollback Procedures**: Emergency procedures for critical issues
+
+#### **Team Collaboration**
+- **Version Control**: Subagents are versioned like code in `.claude/agents/`
+- **Reusability**: Subagents can be shared across team members
+- **Documentation**: Comprehensive documentation for each subagent
+- **Best Practices**: Industry-standard development practices
+
+#### **Performance Optimization**
+- **Resource Monitoring**: Track subagent performance and resource usage
+- **Efficient Delegation**: Automatic delegation based on task descriptions
+- **Continuous Improvement**: Feedback loops for subagent optimization
+- **Scalability**: Easy to add new subagents as project grows
+
+#### **Enhanced Subagent Features**
+- **Plan → Act → Review**: All subagents now implement structured workflow
+- **Pharmacy-Specific Security**: Employee data protection and pharmacy business security
+- **Quality Gates**: Mandatory review processes for all subagents
+- **Context Isolation**: Each subagent maintains focused, specialized context
+- **Team Collaboration**: Version-controlled, reusable subagents with clear documentation

@@ -210,3 +210,7 @@ INSERT INTO contacts (name, phone, email, priority) VALUES
 -- Grant necessary permissions
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;
+
+-- Create Realtime publication
+DROP PUBLICATION IF EXISTS supabase_realtime;
+CREATE PUBLICATION supabase_realtime FOR TABLE messages, contacts, stores, store_schedules, appointments;

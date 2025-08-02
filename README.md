@@ -61,13 +61,17 @@ This project follows a service-oriented architecture with the following componen
 
 ```
 pharm-project/
-├── CLAUDE.md                    # Project guidelines and MCP server usage
-├── CLAUDE.local.md              # Local memory and environment setup
-├── docker-compose.yml           # Main Docker Compose configuration
-├── .env                         # Environment variables
-├── .gitignore                   # Git ignore rules
-├── README.md                    # This file
-├── frontend/                    # Frontend React application
+├── .claude/                     # Claude Code configuration and subagents
+├── data/                        # Organized data storage and processing
+│   ├── imports/                 # Original source files (Excel, CSV, PDF)
+│   ├── processed/               # Processed and transformed data files
+│   ├── exports/                 # Generated reports and export files
+│   └── backups/                 # Data backups and archives
+├── docs/                        # Comprehensive documentation
+│   ├── architecture/            # System design and technical documentation
+│   ├── api/                     # API documentation and specifications
+│   └── deployment/              # Deployment guides and operations
+├── frontend/                    # React application
 │   ├── src/                     # Source code
 │   │   ├── components/          # React components
 │   │   ├── hooks/               # Custom React hooks
@@ -78,6 +82,11 @@ pharm-project/
 │   ├── tests/                   # Test files
 │   ├── Dockerfile               # Frontend container
 │   └── package.json             # Dependencies
+├── scripts/                     # Organized utility scripts and automation
+│   ├── data-processing/         # Data import, transformation, and processing
+│   ├── database/                # Database maintenance and optimization
+│   ├── deployment/              # Deployment automation and environment setup
+│   └── utilities/               # General utility scripts and helper tools
 ├── supabase/                    # Supabase self-hosted configuration
 │   ├── volumes/                 # Docker volumes and configuration
 │   │   ├── api/                 # API gateway config
@@ -88,8 +97,12 @@ pharm-project/
 │   │   └── storage/             # File storage
 │   ├── dev/                     # Development data and configs
 │   └── README.md                # Supabase-specific documentation
-├── scripts/                     # Project-wide utility scripts
-└── volumes/                     # Legacy volume mounts (being phased out)
+├── CLAUDE.md                    # Main project documentation and guidelines
+├── docker-compose.yml           # Main Docker Compose configuration
+├── package.json                 # Root project configuration and scripts
+├── .env                         # Environment variables
+├── .gitignore                   # Git ignore rules
+└── README.md                    # This project overview
 ```
 
 ## 🚀 Getting Started

@@ -114,3 +114,29 @@ venv.bak/
 # Supabase
 .branches
 .temp
+
+# Data files - exclude large processed data but allow imports
+data/processed/*.json
+data/exports/*
+data/backups/*
+# Allow data/imports/ to be tracked for sample files
+!data/imports/.gitkeep
+!data/processed/.gitkeep
+!data/exports/.gitkeep
+!data/backups/.gitkeep
+
+# Large Excel files over 100MB
+*.xlsx
+!data/imports/sample*.xlsx
+
+# Processed data files
+*processed*.json
+*pharmacy_data*.json
+# JWT and encryption keys
+*.pem
+jwt_config.json
+.env.backup.*
+
+# Claude Code configuration
+.claude/
+

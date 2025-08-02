@@ -47,8 +47,15 @@ serve(async (req) => {
       .single()
 
     if (contactError || !contact) {
+      console.error('Contact lookup error:', contactError)
+      console.log('Contact ID searched:', contactId)
       return new Response(
-        JSON.stringify({ success: false, error: 'Contact not found' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Contact not found', 
+          details: contactError ? contactError.message : 'No contact returned',
+          contactId: contactId
+        }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
