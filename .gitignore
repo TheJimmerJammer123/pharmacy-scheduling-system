@@ -137,6 +137,8 @@ data/backups/*
 jwt_config.json
 .env.backup.*
 
-# Claude Code configuration
+# Claude Code configuration (exclude settings but allow subagents)
 .claude/
+!.claude/agents/
+!.claude/agents/*.md
 

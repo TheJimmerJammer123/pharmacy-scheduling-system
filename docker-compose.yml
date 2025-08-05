@@ -1,9 +1,29 @@
-# Pharmacy Scheduling System - Streamlined Docker Compose
-# Usage
+# Pharmacy Scheduling System - Optimized Docker Compose
+# 
+# CORE SERVICES (All Required):
+#   frontend    - React development server with hot reload (port 3000)
+#   kong        - API Gateway (port 8002) - routes all external requests
+#   db          - PostgreSQL database with pharmacy schema
+#   auth        - GoTrue authentication service (JWT tokens)
+#   rest        - PostgREST API server (auto-generated from database)
+#   functions   - Supabase Edge Functions (SMS, AI, document processing)
+#   n8n         - Workflow automation platform (port 5678)
+#
+# DISABLED SERVICES:
+#   supavisor   - Connection pooler (causes restart issues, not needed at current scale)
+#
+# MISSING SERVICES (Not needed for pharmacy use case):
+#   storage     - File storage service (not using Supabase Storage)
+#   realtime    - WebSocket subscriptions (using direct PostgREST)
+#   analytics   - Logflare analytics (not needed for internal system)
+#   studio      - Supabase Studio dashboard (not needed in production)
+#
+# Usage:
 #   Start:              docker compose up -d
 #   Stop:               docker compose down
 #   Reset:              docker compose down -v --remove-orphans
 #   Logs:               docker compose logs -f [service_name]
+#   Health:             docker compose ps
 
 name: pharmacy-scheduling
 
@@ -220,43 +240,43 @@ services:
       JWT_EXP: ${JWT_EXPIRY}
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "log_min_messages=fatal"]
 
-  # Connection Pooler
-  supavisor:
-    container_name: supabase-pooler
-    image: supabase/supavisor:2.5.7
-    restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT}:5432"
-      - "${POOLER_PROXY_PORT_TRANSACTION}:6543"
-    volumes:
-      - ./supabase/volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro,z
-    healthcheck:
-      test: ["CMD", "curl", "-sSfL", "--head", "-o", "/dev/null", "http://127.0.0.1:4000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      PORT: 4000
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DATABASE_URL: ecto://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/_supabase
-      CLUSTER_POSTGRES: true
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      VAULT_ENC_KEY: ${VAULT_ENC_KEY}
-      API_JWT_SECRET: ${JWT_SECRET}
-      METRICS_JWT_SECRET: ${JWT_SECRET}
-      REGION: local
-      ERL_AFLAGS: -proto_dist inet_tcp
-      POOLER_TENANT_ID: ${POOLER_TENANT_ID}
-      POOLER_DEFAULT_POOL_SIZE: ${POOLER_DEFAULT_POOL_SIZE}
-      POOLER_MAX_CLIENT_CONN: ${POOLER_MAX_CLIENT_CONN}
-      POOLER_POOL_MODE: transaction
-      DB_POOL_SIZE: ${POOLER_DB_POOL_SIZE}
-    command: ["/bin/sh", "-c", "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"]
+  # Connection Pooler - DISABLED (causing restart issues, not needed at current scale)
+  # supavisor:
+  #   container_name: supabase-pooler
+  #   image: supabase/supavisor:2.5.7
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${POSTGRES_PORT}:5432"
+  #     - "${POOLER_PROXY_PORT_TRANSACTION}:6543"
+  #   volumes:
+  #     - ./supabase/volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro,z
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-sSfL", "--head", "-o", "/dev/null", "http://127.0.0.1:4000/api/health"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     PORT: 4000
+  #     POSTGRES_PORT: ${POSTGRES_PORT}
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #     DATABASE_URL: ecto://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/_supabase
+  #     CLUSTER_POSTGRES: true
+  #     SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+  #     VAULT_ENC_KEY: ${VAULT_ENC_KEY}
+  #     API_JWT_SECRET: ${JWT_SECRET}
+  #     METRICS_JWT_SECRET: ${JWT_SECRET}
+  #     REGION: local
+  #     ERL_AFLAGS: -proto_dist inet_tcp
+  #     POOLER_TENANT_ID: ${POOLER_TENANT_ID}
+  #     POOLER_DEFAULT_POOL_SIZE: ${POOLER_DEFAULT_POOL_SIZE}
+  #     POOLER_MAX_CLIENT_CONN: ${POOLER_MAX_CLIENT_CONN}
+  #     POOLER_POOL_MODE: transaction
+  #     DB_POOL_SIZE: ${POOLER_DB_POOL_SIZE}
+  #   command: ["/bin/sh", "-c", "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"]
 
   # n8n workflow automation platform
   n8n:

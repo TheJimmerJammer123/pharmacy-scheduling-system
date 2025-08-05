@@ -1,6 +1,5 @@
-\set pguser `echo "$POSTGRES_USER"`
-
+-- Create supavisor schema in _supabase database
 \c _supabase
 create schema if not exists _supavisor;
-alter schema _supavisor owner to :pguser;
+alter schema _supavisor owner to postgres;
 \c postgres
