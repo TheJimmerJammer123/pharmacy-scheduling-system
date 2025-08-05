@@ -26,4 +26,5 @@ export {
   ArrowLeft,
   MapPin,
   Bot,
+  Upload,
 } from "lucide-react";
