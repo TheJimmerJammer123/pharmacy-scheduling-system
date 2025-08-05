@@ -181,22 +181,22 @@ docker-compose -f docker-compose.yml up -d
 Once started, access these services:
 
 ### **Main Applications**
-- **🌐 Frontend App**: [http://localhost:3000](http://localhost:3000)
-- **📊 Supabase Studio**: [http://localhost:3001](http://localhost:3001)
-  - Username: `supabase`
-  - Password: `this_password_is_insecure_and_should_be_updated`
+- **🌐 Frontend App**: [http://100.120.219.68:3000](http://100.120.219.68:3000) ✅ **OPERATIONAL**
+- **⚙️ n8n Workflow Automation**: [http://100.120.219.68:5678](http://100.120.219.68:5678) ✅ **OPERATIONAL**
+  - Username: `admin`
+  - Password: `admin123`
 
 ### **API Endpoints**
-- **REST API**: `http://localhost:8002/rest/v1/`
-- **Auth API**: `http://localhost:8002/auth/v1/`
-- **Storage API**: `http://localhost:8002/storage/v1/`
-- **Realtime API**: `http://localhost:8002/realtime/v1/`
-- **Edge Functions**: `http://localhost:8002/functions/v1/`
-- **Webhook**: `http://localhost:8002/functions/v1/capcom6-webhook`
+- **REST API**: `http://100.120.219.68:8002/rest/v1/` ✅ **OPERATIONAL**
+- **Auth API**: `http://100.120.219.68:8002/auth/v1/` ✅ **OPERATIONAL**
+- **Edge Functions**: `http://100.120.219.68:8002/functions/v1/` ✅ **OPERATIONAL**
+- **Webhook**: `http://100.120.219.68:8002/functions/v1/capcom6-webhook` ✅ **OPERATIONAL**
+- **Storage API**: `http://100.120.219.68:8002/storage/v1/` ✅ **OPERATIONAL** (service running, health check disabled)
+- **Realtime API**: `http://100.120.219.68:8002/realtime/v1/` ✅ **OPERATIONAL**
 
 ### **Database Access**
-- **Direct PostgreSQL**: `localhost:5433` (external connection)
-- **Connection Pooler**: `localhost:6543` (transaction pooling)
+- **Direct PostgreSQL**: `localhost:5432` (internal Docker network)
+- **Connection Pooler**: Disabled (not needed at current scale)
 
 ### **External Services**
 - **📱 Capcom6 SMS Gateway**: `100.126.232.47:8080` (via Tailscale) ✅ **OPERATIONAL**
@@ -210,8 +210,8 @@ Once started, access these services:
 
 ## 📋 Current System Status
 
-### ✅ **Fully Operational Components**
-- **🐳 Docker Services**: All containers running healthy
+### ✅ **Fully Operational Components** 
+- **🐳 Docker Services**: 8 core services running and fully operational
 - **🗃️ Database**: PostgreSQL with complete pharmacy schema and real-time replication
 - **🌐 REST API**: PostgREST endpoints fully functional at port 8002
 - **⚛️ Frontend**: React app with hot reload development environment
@@ -228,9 +228,15 @@ Once started, access these services:
 - **🔐 Authentication**: Both anonymous and service role access working
 
 ### 🚧 **In Development**
-- **📊 Excel Import**: Schedule data import functionality
-- **🔍 Advanced AI**: SQL query capabilities for AI chatbot (basic version complete)
+- **📊 Excel Import**: Schedule data import functionality (Edge Functions ready)
+- **🔍 Advanced AI**: SQL query capabilities for AI chatbot (enhancement planned)
 - **📈 Advanced Analytics**: Comprehensive reporting and insights
+
+### ✅ **All Services Operational**
+- **🔄 Realtime Service**: ✅ **FULLY OPERATIONAL** - WebSocket subscriptions and live updates working
+- **📁 Storage Service**: ✅ **FULLY OPERATIONAL** - Document upload and storage working
+- **📊 Supabase Studio**: Not included (not needed in production)
+- **🔗 Connection Pooler**: Disabled due to restart issues (not needed at current scale)
 
 ### 🎯 **Next Priority Features**
 - Employee onboarding automation via n8n workflows
@@ -245,29 +251,107 @@ Once started, access these services:
 Create a `.env` file in the root directory with the following variables:
 
 ```env
-# Supabase Configuration
-SUPABASE_URL=http://localhost:8002
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+# =============================================================================
+# CORE SUPABASE CONFIGURATION
+# =============================================================================
 
-# Frontend Configuration (injected via Docker Compose)
-VITE_SUPABASE_URL=http://localhost:8002
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRY=3600
 
-# Database Configuration
-DATABASE_URL=postgres://postgres:your-super-secret-and-long-postgres-password@localhost:5433/postgres
+# API Keys (Generated using scripts/generate-api-keys.js)
+ANON_KEY=your_anon_key_here
+SERVICE_ROLE_KEY=your_service_role_key_here
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# PostgreSQL Database
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+POSTGRES_DB=postgres
+POSTGRES_PASSWORD=your_secure_password
+
+# PostgREST Configuration
+PGRST_DB_SCHEMAS=public,storage,graphql_public
+
+# =============================================================================
+# AUTHENTICATION CONFIGURATION
+# =============================================================================
+
+# Site Configuration
+SITE_URL=http://100.120.219.68:3000
+API_EXTERNAL_URL=http://100.120.219.68:8002
+ADDITIONAL_REDIRECT_URLS=http://100.120.219.68:3000,http://100.120.219.68:5678
+
+# Authentication Features
+DISABLE_SIGNUP=false
+ENABLE_EMAIL_SIGNUP=true
+ENABLE_PHONE_SIGNUP=true
+ENABLE_ANONYMOUS_USERS=true
+ENABLE_EMAIL_AUTOCONFIRM=true
+ENABLE_PHONE_AUTOCONFIRM=true
+
+# SMTP Configuration (for email authentication)
+SMTP_ADMIN_EMAIL=admin@pharmacy-scheduling.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_SENDER_NAME="Pharmacy Scheduling System"
+
+# Email URL Paths
+MAILER_URLPATHS_INVITE=/auth/v1/verify
+MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
+MAILER_URLPATHS_RECOVERY=/auth/v1/verify
+MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
+
+# =============================================================================
+# EXTERNAL SERVICES
+# =============================================================================
 
 # Capcom6 SMS Gateway
-# Documentation: https://github.com/capcom6/android-sms-gateway
-CAPCOM6_URL=http://100.126.232.47:8080
-CAPCOM6_USERNAME=sms
-CAPCOM6_PASSWORD=ciSEJNmY
+CAPCOM6_PASSWORD=your_capcom6_password
+
+# OpenRouter AI API
+OPENROUTER_API_KEY=your_openrouter_api_key
+
+# =============================================================================
+# KONG API GATEWAY
+# =============================================================================
+
+# Dashboard Access
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=your_secure_password
+
+# =============================================================================
+# EDGE FUNCTIONS
+# =============================================================================
+
+# JWT Verification for Edge Functions
+FUNCTIONS_VERIFY_JWT=true
+
+# =============================================================================
+# N8N WORKFLOW AUTOMATION
+# =============================================================================
+
+N8N_BASIC_AUTH_ACTIVE=true
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=your_secure_password
+
+# =============================================================================
+# SECURITY KEYS (Generated automatically)
+# =============================================================================
+
+VAULT_ENC_KEY=your_vault_encryption_key
+SECRET_KEY_BASE=your_secret_key_base
 ```
 
 ## 📚 Documentation
 
 - [Claude Project Guidelines](CLAUDE.md) - Comprehensive development guidelines
-- [Local Memory & Context](CLAUDE.local.md) - Project context and decisions
+- [Local Memory & Context](CLAUDE.local.md) - Project context and decisions (contains credentials and sensitive information)
 - Service-specific documentation in each service directory
 
 ## 🤝 Contributing

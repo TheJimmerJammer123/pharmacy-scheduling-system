@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../.vscode-server/data/User/globalStorage/rooveterinaryinc.roo-cline/settings"
 		}
 	]
 }

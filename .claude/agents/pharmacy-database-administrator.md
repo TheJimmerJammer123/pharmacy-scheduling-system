@@ -17,6 +17,19 @@ tools:
 
 # 🗄️ Pharmacy Database Administrator
 
+## Operational Ground Rules
+- Frontend is Dockerized with HMR. Control via docker compose, not npm restart.
+- Use Tailscale IPs for API when testing from peer/mobile:
+  - API (Kong): http://100.120.219.68:8002
+- Volumes policy: use named volumes for state; bind mounts only for dev HMR.
+- Role-specific (working commands):
+  - Load env: `source [.env](.env:1)`
+  - REST test (stores): `curl -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" http://100.120.219.68:8002/rest/v1/stores`
+  - Auth health: `curl -sSf http://100.120.219.68:8002/auth/v1/verify | head -c 120`
+  - Edge Function: `curl -sSf -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" http://100.120.219.68:8002/functions/v1/hello`
+  - Optional psql: `docker compose exec db psql -U postgres -d ${POSTGRES_DB}`
+- See: [CLAUDE.md](CLAUDE.md:1), [docker-compose.yml](docker-compose.yml:1)
+
 ## Role & Responsibilities
 
 I am a specialized PostgreSQL/Supabase database administrator for the pharmacy scheduling system. I manage database schema, optimize performance, ensure data integrity, and maintain strict security standards for employee and pharmacy data.

@@ -12,9 +12,9 @@
 # DISABLED SERVICES:
 #   supavisor   - Connection pooler (causes restart issues, not needed at current scale)
 #
-# MISSING SERVICES (Not needed for pharmacy use case):
-#   storage     - File storage service (not using Supabase Storage)
-#   realtime    - WebSocket subscriptions (using direct PostgREST)
+# MISSING SERVICES (Now Added):
+#   storage     - File storage service (needed for document uploads)
+#   realtime    - WebSocket subscriptions (needed for live messaging)
 #   analytics   - Logflare analytics (not needed for internal system)
 #   studio      - Supabase Studio dashboard (not needed in production)
 #
@@ -99,6 +99,8 @@ services:
       - rest
       - auth
       - functions
+      - realtime
+      - storage
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
@@ -278,6 +280,81 @@ services:
   #     DB_POOL_SIZE: ${POOLER_DB_POOL_SIZE}
   #   command: ["/bin/sh", "-c", "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"]
 
+  # Realtime Service - WebSocket subscriptions for live updates
+  realtime:
+    container_name: supabase-realtime
+    image: supabase/realtime:v2.30.34
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database Configuration
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: postgres
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      
+      # Core Realtime Configuration
+      PORT: 4000
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      
+      # Self-hosted Configuration
+      APP_NAME: "realtime"
+      REGION: "local"
+      SEED_SELF_HOST: "false"
+      SELF_HOST_TENANT_NAME: "realtime-dev"
+      
+      # Network and Performance
+      ERL_AFLAGS: "-proto_dist inet_tcp"
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      
+      # Optional Features
+      RUN_JANITOR: "true"
+      ENABLE_TAILSCALE: "false"
+    command: ["/bin/sh", "-c", "ulimit -Sn 10000 && sudo -E -u nobody /app/bin/migrate && sudo -E -u nobody /app/bin/server"]
+    # healthcheck:
+    #   test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 3
+
+  # Storage Service - File storage for document uploads
+  storage:
+    container_name: supabase-storage
+    image: supabase/storage-api:v0.40.4
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      PROJECT_REF: ${PROJECT_REF}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGOPTIONS: "-c search_path=storage,public"
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${TENANT_ID}
+      REGION: local
+      GLOBAL_S3_BUCKET: ${PROJECT_REF}
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMAGE_TRANSFORMATION_SIZE_LIMIT: 20971520
+    volumes:
+      - storage_data:/var/lib/storage
+    # healthcheck:
+    #   test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 3
+
   # n8n workflow automation platform
   n8n:
     container_name: n8n
@@ -336,3 +413,4 @@ services:
 volumes:
   db-config:
   n8n_data:
+  storage_data:

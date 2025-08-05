@@ -1,8 +1,20 @@
-# 🏥 Pharmacy Scheduling System - Specialized Subagents
+# 🎭 Pharmacy Scheduling System - Specialized Subagents
 
 ## Overview
 
-This directory contains 8 specialized subagents designed specifically for the pharmacy scheduling system. Each subagent is a domain expert with deep knowledge of their specific area, comprehensive tool access, and strict security protocols for handling employee data.
+This directory contains 9 specialized subagents designed specifically for the pharmacy scheduling system. Each subagent is a domain expert with deep knowledge of their specific area, comprehensive tool access, and strict security protocols for handling employee data.
+
+## **Primary Coordinator**
+
+### [🎭 Pharmacy Workflow Orchestrator](./pharmacy-workflow-orchestrator.md)
+**NEW**: Complex task coordination, GitHub Actions CI/CD, emergency rollbacks  
+**Key Focus**: Multi-agent coordination, workflow management, emergency procedures  
+**Core Capabilities**:
+- GitHub Actions CI/CD pipeline management and emergency rollback procedures
+- Multi-agent task coordination and workflow orchestration
+- Comprehensive development commands and environment management
+- Emergency response coordination and incident management
+- Quality gates and deployment pipeline oversight
 
 ## 🎯 Complete Subagent Portfolio
 
