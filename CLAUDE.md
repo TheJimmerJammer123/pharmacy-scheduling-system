@@ -231,6 +231,12 @@ git push origin development
 # Password: [your Personal Access Token]
 ```
 
+**Repository Details:**
+- **GitHub Repository**: https://github.com/TheJimmerJammer123/pharmacy-scheduling-system
+- **Main Branch**: Production-ready stable releases
+- **Development Branch**: Active development with latest improvements
+- **Private Repository**: Secure storage of pharmacy scheduling system code
+
 **SSH Alternative:**
 ```bash
 # Generate SSH key
