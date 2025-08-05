@@ -170,18 +170,95 @@ This is a comprehensive pharmacy scheduling and communication system designed fo
 
 ## 🔄 **DEVELOPMENT WORKFLOW & VERSION CONTROL**
 
-### **Git Workflow**
-- **Frequent Commits**: Regular commits to track progress and changes
-- **Feature Branches**: Separate branches for major features and changes
-- **Pull Requests**: Code review and testing before merging
-- **Rollback Capability**: Easy reversion to previous versions if needed
-- **GitHub Integration**: Remote repository for backup and collaboration
+### **Git Workflow & Best Practices**
 
-### **Change Management**
-- **Incremental Development**: Small, testable changes with frequent commits
-- **Documentation Updates**: Keep CLAUDE.md and subagents current
-- **Testing Strategy**: Test each component before integration
-- **Rollback Planning**: Maintain ability to revert to stable versions
+#### **Branch Strategy**
+- **`main`**: Production-ready stable releases only
+- **`development`**: Active development and integration branch  
+- **`feature/*`**: Individual feature development branches
+- **`hotfix/*`**: Critical production fixes
+- **`release/*`**: Release preparation branches
+
+#### **Commit Guidelines**
+- **Frequent Commits**: Commit working changes regularly (multiple times per day)
+- **Atomic Commits**: Each commit should represent a single logical change
+- **Descriptive Messages**: Use clear, descriptive commit messages with context
+- **Conventional Commits**: Follow conventional commit format when possible
+
+#### **Version Control Commands**
+```bash
+# Check current status and recent commits
+git status
+git log --oneline -10
+
+# Create a new feature branch
+git checkout -b feature/your-feature-name
+
+# Stage and commit changes
+git add .
+git commit -m "feat: your descriptive commit message"
+
+# Push to remote (when configured)
+git push origin feature/your-feature-name
+
+# Switch between branches
+git checkout development
+git checkout main
+
+# Merge feature back to development
+git checkout development
+git merge feature/your-feature-name
+git branch -d feature/your-feature-name
+```
+
+#### **Rollback & Recovery Procedures**
+```bash
+# View recent commits to identify rollback target
+git log --oneline -10
+
+# Revert specific commit (safe - creates new commit)
+git revert <commit-hash>
+
+# Reset to previous commit (destructive - use carefully)
+git reset --hard <commit-hash>
+
+# Create backup before major changes
+git tag backup-$(date +%Y%m%d-%H%M%S)
+
+# Emergency rollback to last known working state
+git checkout main
+git log --oneline -5  # Find stable commit
+git reset --hard <stable-commit-hash>
+```
+
+#### **Safety Protocols**
+- **Test Before Commit**: Always test changes before committing
+- **Backup Critical States**: Tag stable versions before major changes
+- **Document Changes**: Update CLAUDE.md with significant modifications
+- **Incremental Changes**: Make small, testable changes rather than large rewrites
+
+### **Change Management Process**
+
+#### **Development Cycle**
+1. **Feature Planning**: Create todo list with TodoWrite tool
+2. **Branch Creation**: Create feature branch from development
+3. **Implementation**: Make incremental changes with frequent commits
+4. **Testing**: Verify functionality with `docker compose up -d`
+5. **Documentation**: Update CLAUDE.md and relevant documentation
+6. **Integration**: Merge back to development branch
+7. **Validation**: Full system test on development branch
+
+#### **Emergency Procedures**
+1. **Immediate Rollback**: Use `git revert` or `git reset` to stable state
+2. **Service Recovery**: Restart Docker services if needed
+3. **Data Backup**: Create emergency backup if database issues
+4. **Issue Documentation**: Record what went wrong and how it was fixed
+
+#### **Collaboration Workflow**
+- **Code Review**: Review commits before merging to main
+- **Conflict Resolution**: Use merge conflicts as learning opportunities
+- **Knowledge Sharing**: Document decisions and learnings in commit messages
+- **Rollback Planning**: Always maintain ability to revert to previous versions
 
 ## Development Commands
 
