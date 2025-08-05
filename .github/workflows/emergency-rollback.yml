@@ -1,0 +1,371 @@
+name: 🚨 Emergency Rollback & Recovery
+
+# This workflow can be triggered manually for emergency rollbacks
+on:
+  workflow_dispatch:
+    inputs:
+      rollback_target:
+        description: 'Rollback target (commit hash, tag, or branch)'
+        required: true
+        default: 'stable-latest'
+        type: string
+      rollback_reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+      notify_team:
+        description: 'Notify team about rollback'
+        required: false
+        default: true
+        type: boolean
+      emergency_level:
+        description: 'Emergency Level'
+        required: true
+        default: 'medium'
+        type: choice
+        options:
+        - low
+        - medium
+        - high
+        - critical
+
+env:
+  ROLLBACK_BRANCH: emergency-rollback-${{ github.run_number }}
+
+jobs:
+  # Validation and Safety Checks
+  pre-rollback-validation:
+    name: 🔍 Pre-Rollback Validation
+    runs-on: ubuntu-latest
+    outputs:
+      rollback-safe: ${{ steps.safety-check.outputs.safe }}
+      target-exists: ${{ steps.target-check.outputs.exists }}
+      
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history for rollback operations
+
+    - name: 🎯 Validate Rollback Target
+      id: target-check
+      run: |
+        TARGET="${{ inputs.rollback_target }}"
+        
+        echo "🔍 Validating rollback target: $TARGET"
+        
+        # Check if target exists
+        if git rev-parse --verify "$TARGET" >/dev/null 2>&1; then
+          echo "✅ Rollback target '$TARGET' exists"
+          echo "exists=true" >> $GITHUB_OUTPUT
+          
+          # Get target commit info
+          TARGET_COMMIT=$(git rev-parse "$TARGET")
+          TARGET_DATE=$(git show -s --format=%ci "$TARGET")
+          echo "📊 Target commit: $TARGET_COMMIT"
+          echo "📅 Target date: $TARGET_DATE"
+          
+        else
+          echo "❌ Rollback target '$TARGET' does not exist"
+          echo "exists=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+    - name: 🛡️ Safety Checks
+      id: safety-check
+      run: |
+        TARGET="${{ inputs.rollback_target }}"
+        CURRENT_COMMIT=$(git rev-parse HEAD)
+        
+        echo "🛡️ Performing safety checks..."
+        
+        # Check if rollback target is different from current
+        if [ "$TARGET" = "$CURRENT_COMMIT" ]; then
+          echo "⚠️ Warning: Rollback target is the same as current commit"
+        fi
+        
+        # Check if target is a stable tag
+        if git tag --points-at "$TARGET" | grep -q "stable-"; then
+          echo "✅ Target is a stable release"
+          echo "safe=true" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️ Warning: Target is not a stable release"
+          if [ "${{ inputs.emergency_level }}" = "critical" ]; then
+            echo "🚨 Critical emergency - proceeding anyway"
+            echo "safe=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Non-critical rollback to unstable target not allowed"
+            echo "safe=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        fi
+
+    - name: 📋 Create Rollback Report
+      run: |
+        echo "## 🚨 Emergency Rollback Report" >> rollback-report.md
+        echo "" >> rollback-report.md
+        echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> rollback-report.md
+        echo "**Initiated by:** ${{ github.actor }}" >> rollback-report.md
+        echo "**Emergency Level:** ${{ inputs.emergency_level }}" >> rollback-report.md
+        echo "**Reason:** ${{ inputs.rollback_reason }}" >> rollback-report.md
+        echo "" >> rollback-report.md
+        echo "**Current State:**" >> rollback-report.md
+        echo "- Current commit: $(git rev-parse HEAD)" >> rollback-report.md
+        echo "- Current branch: $(git branch --show-current)" >> rollback-report.md
+        echo "" >> rollback-report.md
+        echo "**Rollback Target:**" >> rollback-report.md
+        echo "- Target: ${{ inputs.rollback_target }}" >> rollback-report.md
+        echo "- Target commit: $(git rev-parse ${{ inputs.rollback_target }})" >> rollback-report.md
+        echo "- Target date: $(git show -s --format=%ci ${{ inputs.rollback_target }})" >> rollback-report.md
+        
+        cat rollback-report.md
+
+    - name: 📤 Upload Rollback Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: rollback-report
+        path: rollback-report.md
+
+  # Execute Rollback
+  execute-rollback:
+    name: 🔄 Execute Emergency Rollback
+    runs-on: ubuntu-latest
+    needs: pre-rollback-validation
+    if: needs.pre-rollback-validation.outputs.rollback-safe == 'true' && needs.pre-rollback-validation.outputs.target-exists == 'true'
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🏷️ Create Emergency Backup Tag
+      run: |
+        # Create backup tag of current state before rollback
+        BACKUP_TAG="emergency-backup-$(date +%Y%m%d-%H%M%S)-${{ github.run_number }}"
+        git tag "$BACKUP_TAG"
+        git push origin "$BACKUP_TAG"
+        echo "🏷️ Created emergency backup tag: $BACKUP_TAG"
+        echo "backup_tag=$BACKUP_TAG" >> $GITHUB_ENV
+
+    - name: 🔄 Perform Rollback
+      run: |
+        TARGET="${{ inputs.rollback_target }}"
+        
+        # Configure git
+        git config user.name "Emergency Rollback Bot"
+        git config user.email "emergency-rollback@pharmacy-system.local"
+        
+        echo "🔄 Executing rollback to: $TARGET"
+        
+        # Create emergency rollback branch
+        git checkout -b "${{ env.ROLLBACK_BRANCH }}"
+        
+        # Reset to target state
+        git reset --hard "$TARGET"
+        
+        # Push emergency rollback branch
+        git push origin "${{ env.ROLLBACK_BRANCH }}"
+        
+        echo "✅ Rollback branch created: ${{ env.ROLLBACK_BRANCH }}"
+
+    - name: 🔀 Create Emergency Pull Request
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Create PR for the rollback
+        PR_BODY="## 🚨 EMERGENCY ROLLBACK
+
+**⚠️ This is an emergency rollback pull request**
+
+### Rollback Details
+- **Emergency Level:** ${{ inputs.emergency_level }}
+- **Initiated by:** ${{ github.actor }}
+- **Reason:** ${{ inputs.rollback_reason }}
+- **Target:** ${{ inputs.rollback_target }}
+- **Backup Tag:** ${{ env.backup_tag }}
+
+### Pre-Rollback State
+- **Current Commit:** \$(git rev-parse HEAD~1)  
+- **Rollback Target:** \$(git rev-parse HEAD)
+
+### Next Steps
+1. ✅ Review this rollback carefully
+2. ✅ Merge immediately if this fixes the emergency
+3. ✅ Test deployment after merge
+4. ✅ Create incident report
+
+### Emergency Contacts
+- On-call engineer: Check incident response procedures
+- System status: Verify services after rollback
+
+🤖 Generated by Emergency Rollback Workflow
+"
+        
+        # Create the PR
+        gh pr create \
+          --title "🚨 EMERGENCY ROLLBACK: ${{ inputs.rollback_reason }}" \
+          --body "$PR_BODY" \
+          --base main \
+          --head "${{ env.ROLLBACK_BRANCH }}" \
+          --label "emergency,rollback,urgent"
+        
+        echo "✅ Emergency rollback PR created"
+
+  # Verification and Health Checks
+  post-rollback-verification:
+    name: 🩺 Post-Rollback Verification
+    runs-on: ubuntu-latest
+    needs: execute-rollback
+    
+    steps:
+    - name: 📥 Checkout Rollback Branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.ROLLBACK_BRANCH }}
+
+    - name: 🐳 Quick Health Check
+      run: |
+        echo "🩺 Performing post-rollback health checks..."
+        
+        # Validate docker-compose.yml still works
+        if docker-compose -f docker-compose.yml config > /dev/null; then
+          echo "✅ Docker Compose configuration valid after rollback"
+        else
+          echo "❌ Docker Compose configuration broken after rollback"
+          exit 1
+        fi
+        
+        # Check if CLAUDE.md still exists and is valid
+        if [ -f "CLAUDE.md" ] && [ -s "CLAUDE.md" ]; then
+          echo "✅ CLAUDE.md exists and is not empty"
+        else
+          echo "❌ CLAUDE.md missing or empty after rollback"
+          exit 1
+        fi
+        
+        # Check frontend package.json
+        if [ -f "frontend/package.json" ]; then
+          echo "✅ Frontend configuration exists"
+        else
+          echo "❌ Frontend configuration missing after rollback"
+          exit 1
+        fi
+
+    - name: 📊 Generate Health Report
+      run: |
+        echo "## 🩺 Post-Rollback Health Report" >> health-report.md
+        echo "" >> health-report.md
+        echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> health-report.md
+        echo "**Rollback Branch:** ${{ env.ROLLBACK_BRANCH }}" >> health-report.md
+        echo "" >> health-report.md
+        echo "**Health Checks:**" >> health-report.md
+        echo "- ✅ Docker Compose configuration valid" >> health-report.md
+        echo "- ✅ CLAUDE.md exists and valid" >> health-report.md
+        echo "- ✅ Frontend configuration present" >> health-report.md
+        echo "" >> health-report.md
+        echo "**Recommended Actions:**" >> health-report.md
+        echo "1. Merge the emergency rollback PR immediately" >> health-report.md
+        echo "2. Deploy the rollback to production" >> health-report.md
+        echo "3. Monitor system health after deployment" >> health-report.md
+        echo "4. Create incident report for root cause analysis" >> health-report.md
+        
+        cat health-report.md
+
+    - name: 📤 Upload Health Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: post-rollback-health-report
+        path: health-report.md
+
+  # Notification and Communication
+  notification:
+    name: 📢 Emergency Communications
+    runs-on: ubuntu-latest
+    needs: [pre-rollback-validation, execute-rollback, post-rollback-verification]
+    if: always() && inputs.notify_team
+    
+    steps:
+    - name: 📢 Prepare Notification
+      run: |
+        if [ "${{ needs.execute-rollback.result }}" = "success" ]; then
+          echo "status=SUCCESS" >> $GITHUB_ENV
+          echo "message=Emergency rollback completed successfully" >> $GITHUB_ENV
+        else
+          echo "status=FAILED" >> $GITHUB_ENV
+          echo "message=Emergency rollback failed - manual intervention required" >> $GITHUB_ENV
+        fi
+
+    - name: 📧 Generate Communication Template
+      run: |
+        cat > notification.md << 'EOF'
+        # 🚨 EMERGENCY ROLLBACK NOTIFICATION
+        
+        ## Status: ${{ env.status }}
+        
+        **Emergency Level:** ${{ inputs.emergency_level }}
+        **Reason:** ${{ inputs.rollback_reason }}
+        **Initiated by:** ${{ github.actor }}
+        **Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        
+        ## Actions Taken:
+        - Emergency backup tag created
+        - Rollback branch: ${{ env.ROLLBACK_BRANCH }}
+        - Pull request created for review
+        
+        ## Next Steps:
+        1. Immediate review and merge of rollback PR
+        2. Deploy to production environment
+        3. Monitor system health
+        4. Schedule incident post-mortem
+        
+        ## Repository:
+        https://github.com/TheJimmerJammer123/pharmacy-scheduling-system
+        
+        ---
+        This is an automated emergency notification.
+        EOF
+        
+        cat notification.md
+
+    - name: 📤 Upload Notification Template
+      uses: actions/upload-artifact@v4
+      with:
+        name: emergency-notification
+        path: notification.md
+
+  # Final Summary
+  rollback-summary:
+    name: 📋 Rollback Summary
+    runs-on: ubuntu-latest
+    needs: [pre-rollback-validation, execute-rollback, post-rollback-verification, notification]
+    if: always()
+    
+    steps:
+    - name: 📊 Generate Final Summary
+      run: |
+        echo "## 🚨 Emergency Rollback Workflow - Final Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Phase | Status |" >> $GITHUB_STEP_SUMMARY  
+        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Pre-Rollback Validation | ${{ needs.pre-rollback-validation.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Execute Rollback | ${{ needs.execute-rollback.result == 'success' && '✅ Completed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Post-Rollback Verification | ${{ needs.post-rollback-verification.result == 'success' && '✅ Healthy' || '❌ Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Notification | ${{ needs.notification.result == 'success' && '✅ Sent' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📝 Details:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Emergency Level:** ${{ inputs.emergency_level }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Rollback Target:** \`${{ inputs.rollback_target }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Reason:** ${{ inputs.rollback_reason }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Initiated by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.execute-rollback.result }}" = "success" ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Rollback Successful" >> $GITHUB_STEP_SUMMARY
+          echo "Emergency rollback PR has been created and is ready for immediate review and merge." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Rollback Failed" >> $GITHUB_STEP_SUMMARY
+          echo "Manual intervention is required. Check workflow logs for details." >> $GITHUB_STEP_SUMMARY
+        fi

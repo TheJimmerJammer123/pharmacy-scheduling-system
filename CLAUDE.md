@@ -295,6 +295,135 @@ git reset --hard <stable-commit-hash>
 - **Knowledge Sharing**: Document decisions and learnings in commit messages
 - **Rollback Planning**: Always maintain ability to revert to previous versions
 
+## 🤖 **GITHUB ACTIONS CI/CD PIPELINE**
+
+### **Automated Workflows**
+
+#### **CI/CD Pipeline** (`.github/workflows/ci.yml`)
+**Comprehensive automated testing and quality gates:**
+- **Quality Gates**: Security scanning, documentation validation, Docker configuration checks
+- **Frontend Testing**: TypeScript compilation, ESLint, unit tests, production builds
+- **Docker Integration**: Multi-service health checks, API endpoint testing
+- **Security Audit**: NPM vulnerability scanning, Docker security validation
+
+**Triggers:**
+- Push to `main` or `development` branches
+- Pull requests to `main` or `development`
+- Manual workflow dispatch
+
+#### **Emergency Rollback** (`.github/workflows/emergency-rollback.yml`)
+**Automated emergency rollback procedures:**
+- **Pre-Rollback Validation**: Target verification, safety checks
+- **Automated Rollback**: Emergency backup creation, rollback branch generation
+- **Emergency PR Creation**: Automatic pull request with rollback details
+- **Post-Rollback Health Checks**: System validation after rollback
+
+**Manual Trigger:**
+```bash
+# Go to Actions tab → Emergency Rollback → Run workflow
+# Specify: rollback target, reason, emergency level
+```
+
+#### **Production Deployment** (`.github/workflows/deployment.yml`)
+**Controlled production deployment pipeline:**
+- **Pre-Deployment Validation**: Release status checks, deployment readiness
+- **Build & Push**: Container image building and registry push
+- **Staging Deployment**: Staging environment deployment and health checks  
+- **Production Deployment**: Blue-green production deployment with monitoring
+- **Post-Deployment Monitoring**: 5-minute health monitoring period
+
+**Triggers:**
+- Push to `main` branch (staging)
+- Tagged releases (production)
+- Manual deployment workflow
+
+### **Quality Gates & Branch Protection**
+
+#### **Required Status Checks**
+All pull requests to `main` must pass:
+- ✅ Quality Gates & Security Checks
+- ✅ Frontend Tests & Build  
+- ✅ Docker Integration Tests
+- ✅ Security & Dependency Audit
+
+#### **Emergency Procedures**
+**For Critical Issues:**
+1. **Immediate Rollback**: Use Emergency Rollback workflow
+2. **Specify Target**: Use stable tag (e.g., `stable-20250805-113741`)
+3. **Emergency Level**: Set to `critical` for urgent issues
+4. **Auto-PR Creation**: System creates rollback PR automatically
+
+**Emergency Rollback Command:**
+```bash
+# Via GitHub UI: Actions → Emergency Rollback & Recovery
+# Rollback Target: stable-20250805-113741
+# Emergency Level: critical
+# Reason: [describe the critical issue]
+```
+
+### **Methodical Development Process**
+
+#### **Feature Development Workflow**
+1. **Create Feature Branch**: `git checkout -b feature/your-feature`
+2. **Develop & Test Locally**: Use `docker compose up -d` for testing
+3. **Commit Frequently**: Small, atomic commits with clear messages
+4. **Push to GitHub**: `git push origin feature/your-feature`
+5. **Create Pull Request**: GitHub automatically runs CI/CD pipeline
+6. **Code Review**: Review required before merge to `main`
+7. **Automated Testing**: All quality gates must pass
+8. **Merge to Main**: Triggers staging deployment
+9. **Production Release**: Tag stable releases for production
+
+#### **Safe Rollback Strategy**
+**Multiple Rollback Options:**
+- **Git Revert**: `git revert HEAD` (safe, creates new commit)
+- **Stable Tag Rollback**: Reset to known stable state
+- **Emergency Workflow**: Automated rollback via GitHub Actions
+- **Branch Reset**: `git reset --hard stable-tag` (destructive)
+
+**Stable Checkpoints:**
+```bash
+# Current stable checkpoint
+git checkout stable-20250805-113741
+
+# Create new stable checkpoint before major changes
+git tag stable-$(date +%Y%m%d-%H%M%S)
+git push origin --tags
+```
+
+### **Monitoring & Observability**
+
+#### **GitHub Actions Monitoring**
+- **Workflow Status**: Monitor via GitHub Actions tab
+- **Build Artifacts**: Automated artifact collection and storage
+- **Deployment Reports**: Detailed deployment and health reports
+- **Security Alerts**: Automated security scanning and alerting
+
+#### **Quality Metrics**
+- **Test Coverage**: Automated frontend test coverage reporting
+- **Security Score**: Dependency vulnerability tracking
+- **Performance**: Build time and deployment speed metrics
+- **Reliability**: Pipeline success rate and failure analysis
+
+### **Best Practices Implementation**
+
+#### **Following Claude Code GitHub Actions Guidelines**
+✅ **Repository Structure**: Private repository with proper authentication  
+✅ **CLAUDE.md Integration**: Comprehensive project documentation for AI assistance  
+✅ **Automated Testing**: CI/CD pipeline with quality gates  
+✅ **Security Scanning**: Secrets detection and dependency auditing  
+✅ **Rollback Procedures**: Multiple automated rollback strategies  
+✅ **Environment Management**: Separate staging and production workflows  
+✅ **Monitoring**: Post-deployment health checks and monitoring
+
+#### **Methodical Development Principles**
+- **Incremental Changes**: Small, testable changes with frequent commits
+- **Quality First**: All code must pass quality gates before merge
+- **Safe Deployments**: Staging validation before production
+- **Emergency Preparedness**: Automated rollback procedures always available
+- **Documentation**: All changes documented in commit messages and CLAUDE.md
+- **Monitoring**: Continuous monitoring of system health and performance
+
 ## Development Commands
 
 ### Quick Start (Verified Working - 2025-08-05)
