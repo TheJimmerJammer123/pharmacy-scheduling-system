@@ -198,7 +198,7 @@ git checkout -b feature/your-feature-name
 git add .
 git commit -m "feat: your descriptive commit message"
 
-# Push to remote (when configured)
+# Push to remote (requires authentication)
 git push origin feature/your-feature-name
 
 # Switch between branches
@@ -209,6 +209,35 @@ git checkout main
 git checkout development
 git merge feature/your-feature-name
 git branch -d feature/your-feature-name
+```
+
+#### **Git Authentication Setup**
+The project uses GitHub for remote repository hosting. Authentication is required for push operations:
+
+**Personal Access Token (Recommended):**
+1. Go to GitHub.com → Settings → Developer settings → Personal access tokens
+2. Generate new token with `repo` and `workflow` scopes
+3. Use token as password when prompted for `git push`
+4. Credential helper caches token for 24 hours
+
+**Test Authentication:**
+```bash
+# Test authentication and connection
+./scripts/test-git-auth.sh
+
+# Manual test
+git push origin development
+# Username: TheJimmerJammer123
+# Password: [your Personal Access Token]
+```
+
+**SSH Alternative:**
+```bash
+# Generate SSH key
+ssh-keygen -t ed25519 -C "thejimmerjammer123@gmail.com"
+
+# Add to GitHub and change remote URL
+git remote set-url origin git@github.com:TheJimmerJammer123/pharm-scheduling-project.git
 ```
 
 #### **Rollback & Recovery Procedures**
