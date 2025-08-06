@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8002';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Types matching backend interfaces
 export interface Contact {
@@ -80,14 +81,16 @@ export class ApiClient {
     
     // Enhanced logging for debugging
     if (import.meta.env.DEV) {
-      console.log(`[API DEBUG] Making request to: ${API_BASE_URL}${endpoint}`);
+      console.log(`[API DEBUG] Making request to: ${SUPABASE_URL}/rest/v1${endpoint}`);
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1${endpoint}`, {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           ...options.headers,
         },
         ...options,
@@ -465,7 +468,7 @@ export class ApiClient {
 
   static async getAllEmployees(): Promise<ApiResponse<Array<{ employee_name: string }>>> {
     // Use the contacts table since employees are stored there
-    const response = await this.request<Contact[]>('/contacts');
+    const response = await this.request<Contact[]>('/contacts?select=name');
     if (response.success && response.data) {
       // Transform contacts to employee format
       const employees = response.data.map(contact => ({

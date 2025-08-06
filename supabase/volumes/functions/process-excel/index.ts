@@ -305,7 +305,7 @@ function extractEmployees(sheet: ExcelSheet): any[] {
 
       employees.set(employeeId, {
         name,
-        phone: employeeId, // Use employee ID as phone for uniqueness
+        phone: '', // No phone number available from Excel data
         email: null,
         status: 'active',
         priority: 'medium',
