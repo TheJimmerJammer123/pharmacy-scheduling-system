@@ -35,7 +35,10 @@ export default {
     },
   },
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: 'tsconfig.test.json',
+      useESM: true,
+    }],
     '^.+\\.(js|jsx)$': 'babel-jest',
   },
   transformIgnorePatterns: [
@@ -47,13 +50,14 @@ export default {
     '<rootDir>/dist/',
     '<rootDir>/build/',
   ],
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
   testTimeout: 10000,
   verbose: true,
   clearMocks: true,
   restoreMocks: true,
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
+  },
 };

@@ -1,9 +1,20 @@
 import '@testing-library/jest-dom';
 
 // Mock environment variables
-process.env.VITE_API_URL = 'http://test-api.com';
-process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
-process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
+Object.defineProperty(global, 'import', {
+  value: {
+    meta: {
+      env: {
+        VITE_API_URL: 'http://test-api.com',
+        VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+        VITE_SUPABASE_URL: 'https://test.supabase.co',
+        DEV: true,
+        PROD: false,
+      },
+    },
+  },
+  writable: true,
+});
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
