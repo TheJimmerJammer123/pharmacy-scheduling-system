@@ -36,8 +36,8 @@ serve(async (req: Request) => {
   const path_parts = pathname.split('/')
   const service_name = path_parts[1]
 
-  // Allow webhook endpoints to bypass JWT verification
-  const isWebhookEndpoint = service_name === 'capcom6-webhook' || service_name === 'simple-webhook-test'
+  // Allow webhook endpoints and AI functions to bypass JWT verification
+  const isWebhookEndpoint = service_name === 'capcom6-webhook' || service_name === 'simple-webhook-test' || service_name === 'ai-chat-supercharged'
   
   if (req.method !== 'OPTIONS' && VERIFY_JWT && !isWebhookEndpoint) {
     try {

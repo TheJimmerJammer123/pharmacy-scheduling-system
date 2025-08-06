@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
   Send, Bot, User, Loader2, Sparkles, Database, Settings, 
   Copy, Download, Trash2, Mic, MicOff, Brain, Zap,
@@ -79,6 +79,7 @@ export const ChatbotInterfaceSuper = ({ activeTab, userId }: ChatbotInterfaceSup
   const [showMetrics, setShowMetrics] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredMessages, setFilteredMessages] = useState<ChatMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -125,17 +126,64 @@ export const ChatbotInterfaceSuper = ({ activeTab, userId }: ChatbotInterfaceSup
     }
   ];
 
-  // Initialize AI client
+  // Initialize AI client and load conversation from localStorage
   useEffect(() => {
-    try {
-      const client = new SuperchargedAIClient(userId);
-      setAiClient(client);
-      
-      // Add welcome message
-      const welcomeMessage: ChatMessage = {
-        id: 'welcome',
-        role: 'assistant',
-        content: `🤖 **Welcome to your Supercharged AI Assistant!** 
+    const initializeChat = async () => {
+      try {
+        // Initialize AI client first
+        const client = new SuperchargedAIClient(userId);
+        setAiClient(client);
+        
+        // Load conversation from localStorage
+        const storageKey = `chatbot_messages_${userId || 'default'}`;
+        const conversationKey = `chatbot_conversation_${userId || 'default'}`;
+        
+        console.log(`🔄 Attempting to load chat history with key: ${storageKey}`);
+        
+        const savedMessages = localStorage.getItem(storageKey);
+        const savedConversationId = localStorage.getItem(conversationKey);
+        
+        console.log(`📁 Found saved messages:`, savedMessages ? 'YES' : 'NO');
+        console.log(`🆔 Found conversation ID:`, savedConversationId ? 'YES' : 'NO');
+        
+        let loadedMessages: ChatMessage[] = [];
+        
+        if (savedMessages) {
+          try {
+            const parsedMessages = JSON.parse(savedMessages);
+            // Convert timestamp strings back to Date objects
+            loadedMessages = parsedMessages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }));
+            console.log(`✅ Successfully loaded ${loadedMessages.length} messages from localStorage`);
+            console.log(`📋 Message preview:`, loadedMessages.map(m => ({id: m.id, role: m.role, content: m.content.substring(0, 50)})));
+          } catch (parseError) {
+            console.error('❌ Failed to parse saved messages:', parseError);
+            // Clear corrupted data
+            localStorage.removeItem(storageKey);
+          }
+        } else {
+          console.log('📭 No saved messages found in localStorage');
+        }
+        
+        // Set conversation ID
+        if (savedConversationId) {
+          setConversationId(savedConversationId);
+        } else {
+          const newConversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          setConversationId(newConversationId);
+          localStorage.setItem(`chatbot_conversation_${userId || 'default'}`, newConversationId);
+        }
+        
+        // Set messages - either loaded messages or welcome message
+        if (loadedMessages.length > 0) {
+          setMessages(loadedMessages);
+        } else {
+          const welcomeMessage: ChatMessage = {
+            id: 'welcome',
+            role: 'assistant',
+            content: `🤖 **Welcome to your Supercharged AI Assistant!** 
 
 I'm your advanced pharmacy scheduling AI with multi-model intelligence and real-time data access. I can:
 
@@ -153,24 +201,29 @@ I'm your advanced pharmacy scheduling AI with multi-model intelligence and real-
 - I remember our conversation context for better assistance
 
 How can I help you today?`,
-        timestamp: new Date(),
-        metadata: {
-          model_used: 'system',
-          performance_metrics: {
-            response_time_ms: 0,
-            model_selection_reason: 'Welcome message',
-            data_queries_executed: 0,
-            tokens_used: 0
-          }
+            timestamp: new Date(),
+            metadata: {
+              model_used: 'system',
+              performance_metrics: {
+                response_time_ms: 0,
+                model_selection_reason: 'Welcome message',
+                data_queries_executed: 0,
+                tokens_used: 0
+              }
+            }
+          };
+          
+          setMessages([welcomeMessage]);
         }
-      };
+        
+      } catch (error) {
+        console.error('Failed to initialize AI client or load conversation:', error);
+        setInitError(error instanceof Error ? error.message : 'Failed to initialize AI client');
+      }
+    };
 
-      setMessages([welcomeMessage]);
-    } catch (error) {
-      console.error('Failed to initialize AI client:', error);
-      setInitError(error instanceof Error ? error.message : 'Failed to initialize AI client');
-    }
-  }, [userId]);
+    initializeChat();
+  }, [userId]); // Only depend on userId
 
   // Setup speech recognition
   useEffect(() => {
@@ -213,6 +266,29 @@ How can I help you today?`,
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Save messages to localStorage whenever messages change (but skip initial load)
+  const [isInitialLoad, setIsInitialLoad] = React.useState(true);
+  
+  useEffect(() => {
+    const storageKey = `chatbot_messages_${userId || 'default'}`;
+    
+    if (messages.length > 0 && !isInitialLoad) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+        console.log(`💾 Saved ${messages.length} messages to localStorage with key: ${storageKey}`);
+        console.log(`📋 Saved messages preview:`, messages.map(m => ({id: m.id, role: m.role, content: m.content.substring(0, 30)})));
+      } catch (error) {
+        console.error('❌ Failed to save messages to localStorage:', error);
+      }
+    }
+    
+    // After initial load, subsequent changes should save
+    if (isInitialLoad && messages.length > 0) {
+      console.log(`🔄 Marking initial load as complete, messages.length: ${messages.length}`);
+      setIsInitialLoad(false);
+    }
+  }, [messages, userId, isInitialLoad]);
 
   // Filter messages based on search
   useEffect(() => {
@@ -278,7 +354,16 @@ How can I help you today?`,
         use_cache: cacheEnabled
       });
 
-      setMessages(prev => [...prev, response]);
+      setMessages(prev => {
+        const updatedMessages = [...prev, response];
+        // Update conversation ID if it changed
+        if (response.metadata?.conversation_id && response.metadata.conversation_id !== conversationId) {
+          const newConversationId = response.metadata.conversation_id;
+          setConversationId(newConversationId);
+          localStorage.setItem(`chatbot_conversation_${userId || 'default'}`, newConversationId);
+        }
+        return updatedMessages;
+      });
 
       // Show performance metrics if enabled
       if (showMetrics && response.metadata?.performance_metrics) {
@@ -403,12 +488,30 @@ How can I help you today?`,
     if (aiClient) {
       aiClient.clearConversation(userId);
     }
+    
+    // Clear localStorage
+    try {
+      localStorage.removeItem(`chatbot_messages_${userId || 'default'}`);
+      localStorage.removeItem(`chatbot_conversation_${userId || 'default'}`);
+      console.log('Cleared conversation from localStorage');
+    } catch (error) {
+      console.error('Failed to clear localStorage:', error);
+    }
+    
+    // Generate new conversation ID
+    const newConversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setConversationId(newConversationId);
+    localStorage.setItem(`chatbot_conversation_${userId || 'default'}`, newConversationId);
+    
+    // Reset initial load flag and clear messages
+    setIsInitialLoad(true);
     setMessages([]);
     setSearchQuery("");
     
     toast({
       title: "Conversation cleared",
-      duration: 2000,
+      description: "Chat history has been permanently deleted",
+      duration: 3000,
     });
   };
 
@@ -443,18 +546,7 @@ How can I help you today?`,
           }`}>
             <div className="whitespace-pre-wrap">{message.content}</div>
             
-            {/* Show data results if available */}
-            {message.metadata?.data_results && message.metadata.data_results.length > 0 && (
-              <div className="mt-3 p-3 bg-gray-100 rounded border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Database className="h-4 w-4" />
-                  <span className="text-sm font-medium">Query Results</span>
-                </div>
-                <pre className="text-xs overflow-auto max-h-40">
-                  {JSON.stringify(message.metadata.data_results[0], null, 2)}
-                </pre>
-              </div>
-            )}
+            {/* Query results are now integrated into the main response content, so we don't show them separately */}
 
             {/* Show suggested actions */}
             {message.metadata?.suggested_actions && message.metadata.suggested_actions.length > 0 && (

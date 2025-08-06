@@ -66,6 +66,100 @@ interface ChatResponse {
   }
 }
 
+// Helper function to format analytical responses
+function formatAnalyticalResponse(data: any[], responseFormat: string, originalQuestion: string): string {
+  switch (responseFormat) {
+    case 'most_employees_monday':
+      if (data.length > 0) {
+        const topStore = data[0]
+        let response = `📊 **Monday Staffing Analysis for July 2025**\n\n`
+        response += `🏆 **Top Store**: #${topStore.store_number} with ${topStore.employee_count} employees on Mondays\n`
+        response += `⏰ **Average Hours**: ${parseFloat(topStore.avg_hours).toFixed(1)} hours per employee\n\n`
+        
+        response += `📈 **Top 5 Stores by Monday Staffing:**\n`
+        data.slice(0, 5).forEach((store, idx) => {
+          const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '📍'
+          response += `${medal} Store #${store.store_number}: ${store.employee_count} employees (${parseFloat(store.avg_hours).toFixed(1)}h avg)\n`
+        })
+        
+        return response
+      }
+      break
+      
+    case 'peak_hours':
+      if (data.length > 0) {
+        let response = `⏰ **Peak Staffing Hours Analysis**\n\n`
+        response += `🔥 **Busiest Hour**: ${data[0].hour_start}:00 with ${data[0].total_shifts} total shifts\n`
+        response += `🏪 **Stores Active**: ${data[0].stores_count} stores during peak hour\n`
+        response += `📏 **Average Shift Length**: ${parseFloat(data[0].avg_shift_length).toFixed(1)} hours\n\n`
+        
+        response += `📊 **Top 5 Busiest Hours:**\n`
+        data.slice(0, 5).forEach((hour, idx) => {
+          const icon = idx === 0 ? '🔥' : idx === 1 ? '⚡' : '⏰'
+          const hourFormatted = hour.hour_start < 12 ? `${hour.hour_start}:00 AM` : hour.hour_start === 12 ? '12:00 PM' : `${hour.hour_start - 12}:00 PM`
+          response += `${icon} ${hourFormatted}: ${hour.total_shifts} shifts across ${hour.stores_count} stores\n`
+        })
+        
+        return response
+      }
+      break
+      
+    case 'totals':
+      if (data.length > 0) {
+        const totals = data[0]
+        let response = `📊 **July 2025 Staffing Summary**\n\n`
+        response += `👥 **Unique Employees**: ${totals.unique_employees}\n`
+        response += `📋 **Total Shifts**: ${totals.total_shifts}\n`
+        response += `⏱️ **Total Hours**: ${parseFloat(totals.total_hours).toFixed(1)}\n`
+        response += `📈 **Average Hours per Employee**: ${(parseFloat(totals.total_hours) / parseInt(totals.unique_employees)).toFixed(1)}\n`
+        
+        return response
+      }
+      break
+  }
+  
+  return '📊 **Analysis Results**\\n\\nI found data but could not format it properly. Here is the raw data:\\n' + JSON.stringify(data.slice(0, 3), null, 2)
+}
+
+// Helper function to format specific schedule responses
+function formatSpecificScheduleResponse(data: any[], storeNumber: number, queryDate: string): string {
+  const dateFormatted = new Date(queryDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+  
+  // Group employees by role for better organization
+  const employeesByRole = data.reduce((acc, row) => {
+    if (!acc[row.role]) acc[row.role] = []
+    acc[row.role].push(row)
+    return acc
+  }, {})
+  
+  let formattedResponse = `📅 **Schedule for Store #${storeNumber} on ${dateFormatted}**\n\n`
+  
+  // Sort roles: Pharmacist, Technician, Clerk
+  const roleOrder = ['Pharmacist', 'Technician', 'Clerk']
+  const sortedRoles = Object.keys(employeesByRole).sort((a, b) => {
+    const aIndex = roleOrder.indexOf(a)
+    const bIndex = roleOrder.indexOf(b)
+    return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex)
+  })
+  
+  sortedRoles.forEach(role => {
+    const roleIcon = role === 'Pharmacist' ? '💊' : role === 'Technician' ? '🔬' : '👤'
+    formattedResponse += `${roleIcon} **${role}${employeesByRole[role].length > 1 ? 's' : ''}:**\n`
+    
+    employeesByRole[role].forEach(emp => {
+      formattedResponse += `• ${emp.employee_name} - ${emp.shift_time}\n`
+    })
+    formattedResponse += '\n'
+  })
+  
+  // Add summary
+  const totalEmployees = data.length
+  const totalHours = data.reduce((sum, emp) => sum + (emp.scheduled_hours || 0), 0)
+  formattedResponse += `📊 **Summary:** ${totalEmployees} employee${totalEmployees !== 1 ? 's' : ''} scheduled (${totalHours} total hours)`
+  
+  return formattedResponse
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -273,13 +367,26 @@ QUERY EXECUTION:
 - If query returns empty results, state "No data found"
 - Present data clearly and concisely
 
-CRITICAL: When you execute EXECUTE_QUERY: [SQL], you MUST wait for and use the actual results.
-NEVER use placeholder text like "[Employee Name]" - always use real data from query results.
+CRITICAL: You are an advanced AI system for pharmacy scheduling with dynamic SQL generation capabilities.
 
-For data queries, format as: EXECUTE_QUERY: [SQL]
-For actions, format as: SUGGEST_ACTION: [action_name] [parameters]
+When users ask questions about scheduling data:
+1. The system will automatically detect if a database query is needed
+2. If needed, you will generate appropriate SQL queries to get real data
+3. You will then provide formatted, insightful responses using that data
 
-Provide direct, factual answers using real data.`
+Database schema available:
+- store_schedules: store_number, employee_name, role, shift_time, date, scheduled_hours
+- Date range: July 2025
+- Roles: Pharmacist, Technician, Clerk
+
+For any question that can be answered with data:
+- Be direct and factual
+- Use real employee names and numbers
+- Format responses clearly with structure and insights
+- Never use placeholder text like '[Employee Name]'
+
+If you cannot answer with available data, explain what information would be needed.
+Always provide actionable insights when possible.`
     }
 
     // Select optimal model
@@ -402,16 +509,155 @@ Provide direct, factual answers using real data.`
     let queriesExecuted = 0
     let finalResponse = aiResponseText
 
-    if (aiResponseText.includes('EXECUTE_QUERY:')) {
+    // Check if this is likely a data query that needs database access
+    const seemsLikeDataQuery = /scheduled?|employee|shift|store|hour|day|week|coverage|staffing|analysis|compare|average|most|total|how many|which|what|show|during/i.test(message)
+    
+    if (seemsLikeDataQuery) {
+      console.log('Detected potential data query, asking AI to generate SQL...')
+      
+      // Ask the AI to generate an appropriate SQL query
+      const sqlGenerationPrompt = `Based on this question about pharmacy scheduling data: "${message}"
+
+Database schema:
+- store_schedules: store_number, employee_name, role, shift_time, date, scheduled_hours
+- Available date range: July 2025 (2025-07-01 to 2025-07-31)
+- shift_time format: "9:00am - 5:00pm" (text format)
+- roles: Pharmacist, Technician, Clerk
+
+IMPORTANT SQL Rules:
+1. For average staffing per store: Use subqueries like SELECT AVG(store_employee_count) FROM (SELECT store_number, COUNT(*) as store_employee_count FROM store_schedules GROUP BY store_number) sub
+2. Cannot nest aggregates like AVG(COUNT(...))
+3. For time analysis: Use CAST(SPLIT_PART(shift_time, ':', 1) AS INTEGER) to extract hours
+4. For day analysis: Use EXTRACT(DOW FROM date) where 0=Sunday, 1=Monday, etc.
+5. Always include appropriate WHERE clauses for date filtering
+
+Example patterns:
+- Average per store: SELECT AVG(cnt) FROM (SELECT COUNT(*) as cnt FROM table GROUP BY store_number) sub
+- Peak hours: SELECT hour, COUNT(*) FROM (SELECT CAST(SPLIT_PART(shift_time, ':', 1) AS INTEGER) as hour FROM table) sub GROUP BY hour ORDER BY COUNT(*) DESC
+- Day comparison: SELECT EXTRACT(DOW FROM date) as day, COUNT(*) FROM table GROUP BY day ORDER BY COUNT(*) DESC
+
+Return ONLY the SQL query, no explanation. Use proper PostgreSQL syntax without semicolons.
+
+If the question cannot be answered with the available data, respond with: NO_QUERY_POSSIBLE`
+
       try {
-        const queryMatches = aiResponseText.match(/EXECUTE_QUERY:\s*(.*?)(?=\n|```|$)/gs) || []
+        const sqlResponse = await fetch(selectedModel.endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': Deno.env.get('API_EXTERNAL_URL') || 'http://100.120.219.68:8002',
+            'X-Title': 'Pharmacy Scheduling AI - SQL Generation'
+          },
+          body: JSON.stringify({
+            model: selectedModel.model_id,
+            messages: [{ role: 'user', content: sqlGenerationPrompt }],
+            temperature: 0.1,
+            max_tokens: 500
+          })
+        })
         
-        for (const queryMatch of queryMatches) {
-          let sqlQuery = queryMatch.replace('EXECUTE_QUERY:', '').trim()
-          // Remove markdown code blocks if present
-          sqlQuery = sqlQuery.replace(/```[^`]*```|```/g, '').trim()
+        if (sqlResponse.ok) {
+          const sqlData = await sqlResponse.json()
+          let generatedSQL = sqlData.choices[0].message.content.trim()
           
-          console.log(`Executing query: ${sqlQuery}`)
+          console.log('AI generated SQL:', generatedSQL)
+          
+          if (generatedSQL === 'NO_QUERY_POSSIBLE') {
+            console.log('AI determined query is not possible with available data')
+            // Let it fall through to normal AI processing
+          } else {
+            // Clean up the SQL (remove markdown, semicolons, extra whitespace)
+            generatedSQL = generatedSQL.replace(/```sql\n|```/g, '').replace(/;\s*$/g, '').trim()
+            
+            // Execute the AI-generated query
+            try {
+              console.log(`Executing AI-generated query: ${generatedSQL}`)
+              
+              const { data, error } = await supabase.rpc('exec_sql', { 
+                query: generatedSQL 
+              })
+              
+              if (error) {
+                console.error('AI-generated query error:', error)
+                // Fall back to AI processing instead of showing error
+                console.log('Query failed, falling back to AI interpretation')
+              } else {
+                dataResults.push(data)
+                queryExecuted = generatedSQL
+                queriesExecuted++
+                
+                console.log('AI query results:', data)
+                
+                if (data && Array.isArray(data) && data.length > 0) {
+                  // Ask AI to format the results in a user-friendly way
+                  const formatPrompt = `The user asked: "${message}"
+
+I executed this query: ${generatedSQL}
+
+Results: ${JSON.stringify(data, null, 2)}
+
+Provide a clear, well-formatted response that directly answers their question using this real data. Use emojis and structure for readability. Be concise and insightful.`
+                  
+                  const formatResponse = await fetch(selectedModel.endpoint, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
+                      'Content-Type': 'application/json',
+                      'HTTP-Referer': Deno.env.get('API_EXTERNAL_URL') || 'http://100.120.219.68:8002',
+                      'X-Title': 'Pharmacy Scheduling AI - Response Formatting'
+                    },
+                    body: JSON.stringify({
+                      model: selectedModel.model_id,
+                      messages: [{ role: 'user', content: formatPrompt }],
+                      temperature: 0.3,
+                      max_tokens: 800
+                    })
+                  })
+                  
+                  if (formatResponse.ok) {
+                    const formatData = await formatResponse.json()
+                    finalResponse = formatData.choices[0].message.content
+                  } else {
+                    finalResponse = `📊 **Query Results**\n\nFound ${data.length} results. Here's a summary of the data:\n\n${JSON.stringify(data.slice(0, 3), null, 2)}`
+                  }
+                } else {
+                  finalResponse = '📅 **No Data Found**\n\nNo matching data found for your query.'
+                }
+              }
+            } catch (queryError) {
+              console.error('Error executing AI-generated query:', queryError)
+              // Fall back to AI processing
+            }
+          }
+        } else {
+          console.log('Failed to get SQL generation from AI, falling back to normal processing')
+        }
+      } catch (error) {
+        console.error('Error in AI SQL generation:', error)
+        // Fall back to normal AI processing
+      }
+    }
+    // Check if the AI wants to execute a query from its response
+    else if (aiResponseText.includes('EXECUTE_QUERY:') || /SELECT.*FROM/i.test(aiResponseText)) {
+      try {
+        // Extract SQL query from the AI response
+        let sqlQuery = ''
+        
+        if (aiResponseText.includes('EXECUTE_QUERY:')) {
+          const queryMatch = aiResponseText.match(/EXECUTE_QUERY:\s*([^\n]+)/)
+          sqlQuery = queryMatch ? queryMatch[1].trim() : ''
+        } else {
+          // Look for SELECT statements in the response
+          const selectMatch = aiResponseText.match(/SELECT[^;]+/i)
+          sqlQuery = selectMatch ? selectMatch[0].trim() : ''
+        }
+        
+        // Clean up the query
+        sqlQuery = sqlQuery.replace(/```[^`]*```|```|`/g, '').trim()
+        
+        if (sqlQuery) {
+          console.log(`Executing AI-generated query: ${sqlQuery}`)
           
           const { data, error } = await supabase.rpc('exec_sql', { 
             query: sqlQuery 
@@ -419,54 +665,34 @@ Provide direct, factual answers using real data.`
           
           if (error) {
             console.error('Query error:', error)
-            finalResponse += `\n\n❌ Query Error: ${error.message}`
+            finalResponse = `❌ Query Error: ${error.message}`
           } else {
             dataResults.push(data)
             queryExecuted = sqlQuery
             queriesExecuted++
             
-            // Generate a follow-up response with the actual data
             console.log('Query results:', data)
             
             if (data && Array.isArray(data) && data.length > 0) {
-              // Create a second AI call with the data results
-              const dataPrompt = `The user asked: "${message}"
-              
-I executed this SQL query: ${sqlQuery}
-Results: ${JSON.stringify(data, null, 2)}
-
-Please provide a concise, direct answer using this real data. Don't explain the process, just give the factual answer based on the results.`
-
-              const dataResponse = await fetch(selectedModel.endpoint, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
-                  'Content-Type': 'application/json',
-                  'HTTP-Referer': Deno.env.get('API_EXTERNAL_URL') || 'http://100.120.219.68:8002',
-                  'X-Title': 'Pharmacy Scheduling AI Supercharged'
-                },
-                body: JSON.stringify({
-                  model: selectedModel.model_id,
-                  messages: [
-                    { role: 'user', content: dataPrompt }
-                  ],
-                  temperature: 0.3,
-                  max_tokens: 500
-                })
-              })
-              
-              if (dataResponse.ok) {
-                const dataResponseData = await dataResponse.json()
-                finalResponse = dataResponseData.choices[0].message.content
+              // Format AI-generated query results in a user-friendly way
+              if (data[0].employee_name && data[0].role) {
+                // This looks like schedule data
+                const employees = data.map(row => `• ${row.employee_name} (${row.role}) - ${row.shift_time || 'Time TBD'}`).join('\n')
+                finalResponse = `📋 **Query Results:**\n\n${employees}`
+              } else {
+                // Generic data formatting
+                finalResponse = `📋 **Query Results:**\n\n${data.slice(0, 5).map(row => Object.entries(row).map(([key, value]) => `${key}: ${value}`).join(', ')).join('\n')}`
               }
             } else {
-              finalResponse = "No data found for the requested criteria."
+              finalResponse = "📋 **No Results Found**\n\nNo data matches your query criteria."
             }
           }
+        } else {
+          console.log('Could not extract SQL query from AI response')
         }
       } catch (error) {
         console.error('Query execution error:', error)
-        finalResponse += `\n\n❌ Execution Error: ${error.message}`
+        finalResponse = `❌ Execution Error: ${error.message}`
       }
     }
 
