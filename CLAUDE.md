@@ -70,15 +70,8 @@ This project uses 9 specialized subagents for different aspects of development. 
 
 ### **Development Environment**
 ```bash
-# Start all services (skip problematic realtime/auth)
+# Start all services
 docker compose up -d
-
-# If realtime/auth services fail, stop them:
-docker compose stop realtime auth
-
-# Manually apply database schema if needed:
-docker compose exec db psql -U postgres -f /docker-entrypoint-initdb.d/migrations/01-pharmacy_schema.sql
-docker compose exec db psql -U postgres -f /docker-entrypoint-initdb.d/migrations/02-document_imports.sql
 
 # Check services are healthy
 docker compose ps
@@ -92,6 +85,120 @@ curl -H "Authorization: Bearer $ANON_KEY" -H "apikey: $ANON_KEY" \
 # Frontend: http://100.120.219.68:3000
 # n8n Automation: http://100.120.219.68:5678
 ```
+
+## 🔧 **CRITICAL DATABASE PERMISSION FIXES**
+
+### **Issue Resolution (2025-08-05)**
+We resolved critical Supabase auth and realtime service failures by fixing database permissions. The services were failing with:
+- Auth: `ERROR: must be owner of function uid (SQLSTATE 42501)`
+- Realtime: Database migration failures during schema setup
+
+### **Root Cause**
+The `supabase_auth_admin` and `supabase_realtime` users lacked proper permissions to create functions and tables in their respective schemas.
+
+### **Solution Applied**
+
+#### **1. Updated `supabase/volumes/db/_supabase.sql`**
+```sql
+-- Create auth schema and grant permissions
+CREATE SCHEMA IF NOT EXISTS auth;
+GRANT USAGE ON SCHEMA auth TO postgres, anon, authenticated, service_role;
+GRANT ALL ON SCHEMA auth TO supabase_auth_admin;
+
+-- Create storage schema and grant permissions
+CREATE SCHEMA IF NOT EXISTS storage;
+GRANT USAGE ON SCHEMA storage TO postgres, anon, authenticated, service_role;
+GRANT ALL ON SCHEMA storage TO supabase_storage_admin;
+
+-- Create realtime schema and grant permissions
+CREATE SCHEMA IF NOT EXISTS _realtime;
+GRANT USAGE ON SCHEMA _realtime TO postgres, anon, authenticated, service_role;
+GRANT ALL ON SCHEMA _realtime TO supabase_realtime;
+
+-- Create functions schema and grant permissions
+CREATE SCHEMA IF NOT EXISTS _supabase_functions;
+GRANT USAGE ON SCHEMA _supabase_functions TO postgres, anon, authenticated, service_role;
+GRANT ALL ON SCHEMA _supabase_functions TO supabase_functions_admin;
+
+-- Grant function creation permissions
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth GRANT ALL ON FUNCTIONS TO supabase_auth_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA _realtime GRANT ALL ON FUNCTIONS TO supabase_realtime;
+ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON FUNCTIONS TO supabase_storage_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA _supabase_functions GRANT ALL ON FUNCTIONS TO supabase_functions_admin;
+
+-- Grant table creation permissions
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth GRANT ALL ON TABLES TO supabase_auth_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA _realtime GRANT ALL ON TABLES TO supabase_realtime;
+ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON TABLES TO supabase_storage_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA _supabase_functions GRANT ALL ON TABLES TO supabase_functions_admin;
+```
+
+#### **2. Updated `supabase/volumes/db/roles.sql`**
+```sql
+-- Create all required users with proper roles
+DO
+$$
+BEGIN
+    -- Create supabase_admin if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_admin') THEN
+        CREATE USER supabase_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+    END IF;
+    
+    -- Create supabase_auth_admin if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+        CREATE USER supabase_auth_admin NOINHERIT LOGIN NOREPLICATION;
+    END IF;
+    
+    -- Create supabase_storage_admin if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_storage_admin') THEN
+        CREATE USER supabase_storage_admin NOINHERIT LOGIN NOREPLICATION;
+    END IF;
+    
+    -- Create supabase_realtime if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_realtime') THEN
+        CREATE USER supabase_realtime NOINHERIT LOGIN NOREPLICATION;
+    END IF;
+    
+    -- Create supabase_functions_admin if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_functions_admin') THEN
+        CREATE USER supabase_functions_admin NOINHERIT LOGIN NOREPLICATION;
+    END IF;
+    
+    -- Create authenticator if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticator') THEN
+        CREATE USER authenticator NOINHERIT LOGIN NOREPLICATION;
+    END IF;
+    
+    -- Create pgbouncer if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pgbouncer') THEN
+        CREATE USER pgbouncer NOINHERIT LOGIN NOREPLICATION;
+    END IF;
+END
+$$;
+
+-- Grant necessary permissions
+GRANT supabase_admin TO authenticator;
+GRANT supabase_admin TO supabase_auth_admin;
+GRANT supabase_admin TO supabase_storage_admin;
+GRANT supabase_admin TO supabase_realtime;
+GRANT supabase_admin TO supabase_functions_admin;
+
+-- Grant schema permissions
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON SCHEMA public TO postgres, supabase_admin;
+```
+
+### **Verification Steps**
+After applying these fixes:
+1. **Restart services**: `docker compose down && docker compose up -d`
+2. **Check health**: `docker compose ps` - all services should be healthy
+3. **Test auth**: `docker compose logs auth` - should show "54 migrations applied successfully"
+4. **Test API**: `curl -s http://localhost:8002/rest/v1/ -H "apikey: $ANON_KEY"` - should return API documentation
+
+### **Prevention**
+- Always ensure proper database schema creation before starting Supabase services
+- Verify user permissions match Supabase self-hosting requirements
+- Test service health after any database configuration changes
 
 ### Dockerized Frontend + HMR
 - The frontend runs in Docker with hot reload (HMR) enabled.

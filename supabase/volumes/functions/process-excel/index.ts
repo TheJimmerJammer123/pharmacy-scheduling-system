@@ -15,15 +15,20 @@ interface ProcessingRequest {
 
 interface ExcelSheet {
   name: string
-  data: any[][]
   headers: string[]
+  data: any[][]
 }
 
-interface DataMapping {
-  sheet_name: string
-  target_table: string
-  column_mappings: Record<string, string>
-  transformation_rules?: Record<string, any>
+interface ImportResult {
+  sheets_processed: number
+  total_records: number
+  details: Record<string, any>
+  summary: {
+    employees_imported: number
+    schedules_imported: number
+    stores_imported: number
+    errors: string[]
+  }
 }
 
 serve(async (req) => {
@@ -32,8 +37,11 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let import_id: string = ''
+
   try {
-    const { import_id, file_name, file_type, content }: ProcessingRequest = await req.json()
+    const { import_id: reqImportId, file_name, file_type, content }: ProcessingRequest = await req.json()
+    import_id = reqImportId
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -54,22 +62,21 @@ serve(async (req) => {
     // Decode base64 content
     const fileBuffer = Uint8Array.from(atob(content), c => c.charCodeAt(0))
 
-    // Process Excel file using external service or library
-    // For now, we'll use a simple approach and call an external processing service
+    // Process Excel file
     const processingResult = await processExcelFile(fileBuffer, file_name)
 
     // Update progress
     await supabase
       .from('document_imports')
       .update({
-        progress: 50,
-        message: 'Excel file parsed, mapping data to database schema...',
+        progress: 30,
+        message: 'Excel file parsed, extracting and transforming data...',
         updated_at: new Date().toISOString()
       })
       .eq('id', import_id)
 
-    // Map and import data
-    const importResults = await importExcelData(supabase, processingResult.sheets)
+    // Process and import data with enhanced mapping
+    const importResults = await processPharmacyData(supabase, processingResult.sheets)
 
     // Update final status
     await supabase
@@ -77,11 +84,12 @@ serve(async (req) => {
       .update({
         status: 'completed',
         progress: 100,
-        message: `Successfully imported ${importResults.total_records} records from ${importResults.sheets_processed} sheets`,
+        message: `Successfully imported ${importResults.total_records} records. Employees: ${importResults.summary.employees_imported}, Schedules: ${importResults.summary.schedules_imported}, Stores: ${importResults.summary.stores_imported}`,
         metadata: {
           sheets_processed: importResults.sheets_processed,
           total_records: importResults.total_records,
-          import_details: importResults.details
+          import_details: importResults.details,
+          summary: importResults.summary
         },
         updated_at: new Date().toISOString()
       })
@@ -114,6 +122,7 @@ serve(async (req) => {
         .update({
           status: 'failed',
           message: `Processing failed: ${error.message}`,
+          error_details: { error: error.message, stack: error.stack },
           updated_at: new Date().toISOString()
         })
         .eq('id', import_id)
@@ -136,11 +145,27 @@ serve(async (req) => {
 
 async function processExcelFile(fileBuffer: Uint8Array, fileName: string): Promise<{ sheets: ExcelSheet[] }> {
   try {
-    // Import xlsx library dynamically
-    const XLSX = await import('https://cdn.skypack.dev/xlsx@0.18.5')
+    // Import xlsx library dynamically - try different CDNs
+    let XLSX;
+    try {
+      XLSX = await import('https://cdn.skypack.dev/xlsx@0.18.5')
+    } catch (error) {
+      console.log('Trying alternative CDN...')
+      try {
+        XLSX = await import('https://esm.sh/xlsx@0.18.5')
+      } catch (error2) {
+        console.log('Trying npm CDN...')
+        XLSX = await import('https://cdn.nest.land/xlsx@0.18.5')
+      }
+    }
     
     // Read the Excel file
-    const workbook = XLSX.read(fileBuffer, { type: 'array' })
+    const workbook = XLSX.read(fileBuffer, { 
+      type: 'array',
+      cellDates: true,
+      cellNF: false,
+      cellStyles: false
+    })
     
     const sheets: ExcelSheet[] = []
     
@@ -177,165 +202,326 @@ async function processExcelFile(fileBuffer: Uint8Array, fileName: string): Promi
   }
 }
 
-async function importExcelData(supabase: any, sheets: ExcelSheet[]): Promise<any> {
-  const results = {
+async function processPharmacyData(supabase: any, sheets: ExcelSheet[]): Promise<ImportResult> {
+  const results: ImportResult = {
     sheets_processed: 0,
     total_records: 0,
-    details: {}
+    details: {},
+    summary: {
+      employees_imported: 0,
+      schedules_imported: 0,
+      stores_imported: 0,
+      errors: []
+    }
   }
 
-  for (const sheet of sheets) {
-    try {
-      console.log(`Processing sheet: ${sheet.name}`)
-      console.log(`Headers: ${JSON.stringify(sheet.headers)}`)
-      console.log(`Data rows: ${sheet.data.length}`)
+  // Find the shift detail sheet
+  const shiftDetailSheet = sheets.find(sheet => 
+    sheet.name.toLowerCase().includes('shift detail') || 
+    sheet.name.toLowerCase().includes('shift')
+  )
 
-      // Smart mapping based on sheet content and headers
-      const tableName = determineTargetTable(sheet)
-      const records = mapSheetToRecords(sheet, tableName)
+  if (!shiftDetailSheet) {
+    throw new Error('No shift detail sheet found in Excel file')
+  }
 
-      if (tableName && records.length > 0) {
-        console.log(`Attempting to insert ${records.length} records into ${tableName}`)
-        console.log(`Sample record:`, records[0])
+  console.log(`Processing shift detail sheet: ${shiftDetailSheet.name}`)
+  console.log(`Headers: ${JSON.stringify(shiftDetailSheet.headers)}`)
+  console.log(`Data rows: ${shiftDetailSheet.data.length}`)
 
-        const { data, error } = await supabase
-          .from(tableName)
-          .insert(records)
+  try {
+    // Extract and process employees
+    const employees = extractEmployees(shiftDetailSheet)
+    console.log(`Extracted ${employees.length} unique employees`)
 
-        if (error) {
-          console.error(`Error importing ${tableName}:`, error)
-          results.details[sheet.name] = { 
-            error: error.message,
-            table: tableName,
-            attempted_records: records.length
-          }
-        } else {
-          results.sheets_processed++
-          results.total_records += records.length
-          results.details[sheet.name] = { 
-            records_imported: records.length,
-            table: tableName,
-            columns_mapped: sheet.headers.length
-          }
-        }
-      } else {
-        results.details[sheet.name] = { 
-          error: 'No suitable table mapping found or no valid records',
-          headers: sheet.headers,
-          data_preview: sheet.data.slice(0, 3)
-        }
-      }
-    } catch (error) {
-      console.error(`Error processing sheet ${sheet.name}:`, error)
-      results.details[sheet.name] = { error: error.message }
+    // Extract and process stores
+    const stores = extractStores(shiftDetailSheet)
+    console.log(`Extracted ${stores.length} unique stores`)
+
+    // Extract and process schedules
+    const schedules = extractSchedules(shiftDetailSheet)
+    console.log(`Extracted ${schedules.length} schedule records`)
+
+    // Import stores first (they're referenced by schedules)
+    if (stores.length > 0) {
+      const storeResults = await importStoresBatch(supabase, stores)
+      results.summary.stores_imported = storeResults.successCount
+      results.details.stores = storeResults
     }
+
+    // Import employees
+    if (employees.length > 0) {
+      const employeeResults = await importEmployeesBatch(supabase, employees)
+      results.summary.employees_imported = employeeResults.successCount
+      results.details.employees = employeeResults
+    }
+
+    // Import schedules
+    if (schedules.length > 0) {
+      const scheduleResults = await importSchedulesBatch(supabase, schedules)
+      results.summary.schedules_imported = scheduleResults.successCount
+      results.details.schedules = scheduleResults
+    }
+
+    results.sheets_processed = 1
+    results.total_records = employees.length + schedules.length + stores.length
+
+  } catch (error) {
+    console.error(`Error processing pharmacy data:`, error)
+    results.summary.errors.push(error.message)
+    results.details.error = error.message
   }
 
   return results
 }
 
-function determineTargetTable(sheet: ExcelSheet): string {
+function extractEmployees(sheet: ExcelSheet): any[] {
+  const employees = new Map<string, any>()
+  
+  // Find column indices
   const headers = sheet.headers.map(h => h.toLowerCase())
-  const sheetName = sheet.name.toLowerCase()
+  const employeeIdIndex = headers.findIndex(h => h.includes('employee id'))
+  const firstNameIndex = headers.findIndex(h => h.includes('first name'))
+  const lastNameIndex = headers.findIndex(h => h.includes('last name'))
+  const roleIndex = headers.findIndex(h => h.includes('role'))
+  const employeeTypeIndex = headers.findIndex(h => h.includes('employee type'))
 
-  // Check for store data
-  if (sheetName.includes('store') || headers.some(h => h.includes('store'))) {
-    return 'stores'
+  if (employeeIdIndex === -1 || firstNameIndex === -1 || lastNameIndex === -1) {
+    throw new Error('Required employee columns not found')
   }
 
-  // Check for schedule/shift data
-  if (sheetName.includes('shift') || sheetName.includes('schedule') || 
-      headers.some(h => h.includes('shift') || h.includes('schedule') || h.includes('date'))) {
-    return 'store_schedules'
+  for (const row of sheet.data) {
+    const employeeId = String(row[employeeIdIndex] || '').trim()
+    if (!employeeId) continue
+
+    const firstName = String(row[firstNameIndex] || '').trim()
+    const lastName = String(row[lastNameIndex] || '').trim()
+    const role = String(row[roleIndex] || '').trim()
+    const employeeType = String(row[employeeTypeIndex] || '').trim()
+
+    if (firstName && lastName) {
+      const name = `${firstName} ${lastName}`.trim()
+      const notes = `${role}${employeeType ? ` - ${employeeType}` : ''}`
+
+      employees.set(employeeId, {
+        name,
+        phone: employeeId, // Use employee ID as phone for uniqueness
+        email: null,
+        status: 'active',
+        priority: 'medium',
+        notes: notes || null
+      })
+    }
   }
 
-  // Check for employee/contact data
-  if (sheetName.includes('employee') || sheetName.includes('contact') ||
-      headers.some(h => h.includes('name') || h.includes('phone') || h.includes('email'))) {
-    return 'contacts'
-  }
-
-  return ''
+  return Array.from(employees.values())
 }
 
-function mapSheetToRecords(sheet: ExcelSheet, tableName: string): any[] {
-  const headers = sheet.headers.map(h => h.toLowerCase().trim())
+function extractStores(sheet: ExcelSheet): any[] {
+  const stores = new Map<string, any>()
   
-  return sheet.data.map(row => {
-    const record: any = {}
-    
-    switch (tableName) {
-      case 'stores':
-        // Map common store fields
-        headers.forEach((header, index) => {
-          const value = row[index]
-          if (value == null || value === '') return
-          
-          if (header.includes('store') && header.includes('number')) record.store_number = value
-          else if (header.includes('address')) record.address = value
-          else if (header.includes('city')) record.city = value
-          else if (header.includes('state')) record.state = value
-          else if (header.includes('zip')) record.zip_code = value
-          else if (header.includes('phone')) record.phone = value
-          else if (header.includes('name')) record.store_name = value
-        })
-        break
+  // Find column indices
+  const headers = sheet.headers.map(h => h.toLowerCase())
+  const scheduledSiteIndex = headers.findIndex(h => h.includes('scheduled site'))
 
-      case 'contacts':
-        headers.forEach((header, index) => {
-          const value = row[index]
-          if (value == null || value === '') return
-          
-          if (header.includes('name')) record.name = value
-          else if (header.includes('phone')) record.phone = value
-          else if (header.includes('email')) record.email = value
-          else if (header.includes('status')) record.status = value
-          else if (header.includes('priority')) record.priority = value
-          else if (header.includes('role')) record.role = value
-        })
-        break
+  if (scheduledSiteIndex === -1) {
+    throw new Error('Scheduled site column not found')
+  }
 
-      case 'store_schedules':
-        headers.forEach((header, index) => {
-          const value = row[index]
-          if (value == null || value === '') return
-          
-          if (header.includes('store')) record.store_number = value
-          else if (header.includes('date')) record.date = formatDate(value)
-          else if (header.includes('employee') || header.includes('name')) record.employee_name = value
-          else if (header.includes('shift') || header.includes('time')) record.shift_time = value
-          else if (header.includes('role') || header.includes('position')) record.role = value
-          else if (header.includes('start')) record.start_time = value
-          else if (header.includes('end')) record.end_time = value
-        })
-        break
-    }
-    
-    return record
-  }).filter(record => Object.keys(record).length > 0)
-}
+  for (const row of sheet.data) {
+    const siteName = String(row[scheduledSiteIndex] || '').trim()
+    if (!siteName) continue
 
-function formatDate(value: any): string | null {
-  if (!value) return null
-  
-  try {
-    // Handle Excel date serial numbers
-    if (typeof value === 'number') {
-      const date = new Date((value - 25569) * 86400 * 1000)
-      return date.toISOString().split('T')[0]
-    }
-    
-    // Handle string dates
-    if (typeof value === 'string') {
-      const date = new Date(value)
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split('T')[0]
+    // Parse site name with multiple patterns
+    let storeNumber: number | null = null
+    let city: string = ''
+    let address: string = ''
+
+    // Pattern 1: "79 - Syracuse (Electronics Pkwy)" - with address in parentheses
+    const siteMatch1 = siteName.match(/^(\d+)\s*-\s*(.+?)\s*\((.+?)\)$/)
+    if (siteMatch1) {
+      storeNumber = parseInt(siteMatch1[1])
+      city = siteMatch1[2].trim()
+      address = siteMatch1[3].trim()
+    } else {
+      // Pattern 2: "102 - Randolph" - just store number and city
+      const siteMatch2 = siteName.match(/^(\d+)\s*-\s*(.+)$/)
+      if (siteMatch2) {
+        storeNumber = parseInt(siteMatch2[1])
+        city = siteMatch2[2].trim()
+        address = city // Use city as address for now
       }
     }
-    
-    return String(value)
-  } catch (error) {
-    console.warn('Date formatting error:', error)
-    return String(value)
+
+    if (storeNumber) {
+      stores.set(storeNumber.toString(), {
+        store_number: storeNumber,
+        address: address,
+        city: city,
+        state: 'NY', // Default to NY
+        zip_code: '', // To be filled later
+        phone: '', // To be filled later
+        is_active: true
+      })
+    }
   }
+
+  console.log(`Extracted ${stores.size} unique stores from site data`)
+  return Array.from(stores.values())
+}
+
+function extractSchedules(sheet: ExcelSheet): any[] {
+  const schedules = []
+  
+  // Find column indices
+  const headers = sheet.headers.map(h => h.toLowerCase())
+  const employeeIdIndex = headers.findIndex(h => h.includes('employee id'))
+  const firstNameIndex = headers.findIndex(h => h.includes('first name'))
+  const lastNameIndex = headers.findIndex(h => h.includes('last name'))
+  const roleIndex = headers.findIndex(h => h.includes('role'))
+  const employeeTypeIndex = headers.findIndex(h => h.includes('employee type'))
+  const scheduledDateIndex = headers.findIndex(h => h.includes('scheduled date'))
+  const startTimeIndex = headers.findIndex(h => h.includes('start time'))
+  const endTimeIndex = headers.findIndex(h => h.includes('end time'))
+  const scheduledHoursIndex = headers.findIndex(h => h.includes('scheduled hours'))
+  const scheduledSiteIndex = headers.findIndex(h => h.includes('scheduled site'))
+
+  if (scheduledDateIndex === -1 || startTimeIndex === -1 || endTimeIndex === -1) {
+    throw new Error('Required schedule columns not found')
+  }
+
+  for (const row of sheet.data) {
+    const scheduledDate = row[scheduledDateIndex]
+    const startTime = row[startTimeIndex]
+    const endTime = row[endTimeIndex]
+    
+    if (!scheduledDate || !startTime || !endTime) continue
+
+    const employeeId = String(row[employeeIdIndex] || '').trim()
+    const firstName = String(row[firstNameIndex] || '').trim()
+    const lastName = String(row[lastNameIndex] || '').trim()
+    const role = String(row[roleIndex] || '').trim()
+    const employeeType = String(row[employeeTypeIndex] || '').trim()
+    const scheduledHours = row[scheduledHoursIndex]
+    const siteName = String(row[scheduledSiteIndex] || '').trim()
+
+    // Extract store number from site name
+    const siteMatch = siteName.match(/(\d+)\s*-\s*/)
+    const storeNumber = siteMatch ? parseInt(siteMatch[1]) : null
+
+    if (storeNumber && firstName && lastName) {
+      const employeeName = `${firstName} ${lastName}`.trim()
+      const shiftTime = `${startTime} - ${endTime}`
+
+      schedules.push({
+        store_number: storeNumber,
+        date: formatDate(scheduledDate),
+        employee_name: employeeName,
+        employee_id: employeeId,
+        role: role || null,
+        employee_type: employeeType || null,
+        shift_time: shiftTime,
+        scheduled_hours: scheduledHours ? parseFloat(scheduledHours) : null
+      })
+    }
+  }
+
+  return schedules
+}
+
+function formatDate(dateValue: any): string {
+  if (dateValue instanceof Date) {
+    return dateValue.toISOString().split('T')[0]
+  }
+  if (typeof dateValue === 'string') {
+    return dateValue.split('T')[0]
+  }
+  return String(dateValue)
+}
+
+async function importStoresBatch(supabase: any, stores: any[]): Promise<any> {
+  const batchSize = 100
+  let successCount = 0
+  let errorCount = 0
+  const errors: string[] = []
+
+  for (let i = 0; i < stores.length; i += batchSize) {
+    const batch = stores.slice(i, i + batchSize)
+    
+    try {
+      const { error } = await supabase
+        .from('stores')
+        .upsert(batch, { onConflict: 'store_number' })
+
+      if (error) {
+        errorCount += batch.length
+        errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`)
+      } else {
+        successCount += batch.length
+      }
+    } catch (error) {
+      errorCount += batch.length
+      errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`)
+    }
+  }
+
+  return { successCount, errorCount, errors }
+}
+
+async function importEmployeesBatch(supabase: any, employees: any[]): Promise<any> {
+  const batchSize = 100
+  let successCount = 0
+  let errorCount = 0
+  const errors: string[] = []
+
+  for (let i = 0; i < employees.length; i += batchSize) {
+    const batch = employees.slice(i, i + batchSize)
+    
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .upsert(batch, { onConflict: 'phone' })
+
+      if (error) {
+        errorCount += batch.length
+        errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`)
+      } else {
+        successCount += batch.length
+      }
+    } catch (error) {
+      errorCount += batch.length
+      errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`)
+    }
+  }
+
+  return { successCount, errorCount, errors }
+}
+
+async function importSchedulesBatch(supabase: any, schedules: any[]): Promise<any> {
+  const batchSize = 100
+  let successCount = 0
+  let errorCount = 0
+  const errors: string[] = []
+
+  for (let i = 0; i < schedules.length; i += batchSize) {
+    const batch = schedules.slice(i, i + batchSize)
+    
+    try {
+      const { error } = await supabase
+        .from('store_schedules')
+        .insert(batch)
+
+      if (error) {
+        errorCount += batch.length
+        errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`)
+      } else {
+        successCount += batch.length
+      }
+    } catch (error) {
+      errorCount += batch.length
+      errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`)
+    }
+  }
+
+  return { successCount, errorCount, errors }
 } 

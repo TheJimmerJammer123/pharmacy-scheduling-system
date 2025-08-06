@@ -450,25 +450,63 @@ export class ApiClient {
 
   // Employee-based scheduling endpoints
   static async getEmployeeSchedules(employeeName: string, startDate?: string, endDate?: string): Promise<ApiResponse<any[]>> {
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
+    // Use the store_schedules table and filter by employee_name
+    let url = `/store_schedules?employee_name=eq.${encodeURIComponent(employeeName)}`;
     
-    return this.request<any[]>(`/store-schedules/employee/${encodeURIComponent(employeeName)}?${params.toString()}`);
+    if (startDate) {
+      url += `&date=gte.${startDate}`;
+    }
+    if (endDate) {
+      url += `&date=lte.${endDate}`;
+    }
+    
+    return this.request<any[]>(url);
   }
 
   static async getAllEmployees(): Promise<ApiResponse<Array<{ employee_name: string }>>> {
-    return this.request<Array<{ employee_name: string }>>('/store-schedules/employees/list');
+    // Use the contacts table since employees are stored there
+    const response = await this.request<Contact[]>('/contacts');
+    if (response.success && response.data) {
+      // Transform contacts to employee format
+      const employees = response.data.map(contact => ({
+        employee_name: contact.name
+      }));
+      return {
+        success: true,
+        data: employees
+      };
+    }
+    return response as any;
   }
 
   static async getEmployeeNotes(employeeName: string): Promise<ApiResponse<any[]>> {
-    return this.request<any[]>(`/store-schedules/employee/${encodeURIComponent(employeeName)}/notes`);
+    // Get employee notes from contacts table
+    const response = await this.request<Contact[]>(`/contacts?name=eq.${encodeURIComponent(employeeName)}`);
+    if (response.success && response.data && response.data.length > 0) {
+      return {
+        success: true,
+        data: [{ notes: response.data[0].notes }]
+      };
+    }
+    return {
+      success: true,
+      data: []
+    };
   }
 
   static async saveEmployeeNotes(employeeName: string, notes: string): Promise<ApiResponse<any>> {
-    return this.request<any>(`/store-schedules/employee/${encodeURIComponent(employeeName)}/notes`, {
-      method: 'POST',
-      body: JSON.stringify({ notes }),
-    });
+    // Update employee notes in contacts table
+    const response = await this.request<Contact[]>(`/contacts?name=eq.${encodeURIComponent(employeeName)}`);
+    if (response.success && response.data && response.data.length > 0) {
+      const contactId = response.data[0].id;
+      return this.request<any>(`/contacts?id=eq.${contactId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ notes }),
+      });
+    }
+    return {
+      success: false,
+      error: 'Employee not found'
+    };
   }
 } 
