@@ -8,6 +8,13 @@ export default {
     '^@/lib/(.*)$': '<rootDir>/src/lib/$1',
     '^@/hooks/(.*)$': '<rootDir>/src/hooks/$1',
     '^@/utils/(.*)$': '<rootDir>/src/utils/$1',
+    // Mock UI components
+    '^@/components/ui/(.*)$': '<rootDir>/src/__mocks__/components.tsx',
+    // Mock icons
+    '^@/lib/icons$': '<rootDir>/src/__mocks__/icons.tsx',
+    // Mock AI client
+    '^@/lib/ai-client-supercharged$': '<rootDir>/src/lib/__mocks__/ai-client-supercharged.ts',
+    // Mock static assets
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/src/__mocks__/fileMock.js',
@@ -23,6 +30,7 @@ export default {
     '!src/vite-env.d.ts',
     '!src/**/index.ts',
     '!src/**/index.tsx',
+    '!src/__mocks__/**/*',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

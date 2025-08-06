@@ -1,20 +1,36 @@
 import '@testing-library/jest-dom';
 
-// Mock environment variables
+// Mock environment variables for Vite
+const mockEnv = {
+  VITE_API_URL: 'http://test-api.com',
+  VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+  VITE_SUPABASE_URL: 'https://test.supabase.co',
+  DEV: true,
+  PROD: false,
+  MODE: 'test',
+};
+
+// Mock import.meta.env
 Object.defineProperty(global, 'import', {
   value: {
     meta: {
-      env: {
-        VITE_API_URL: 'http://test-api.com',
-        VITE_SUPABASE_ANON_KEY: 'test-anon-key',
-        VITE_SUPABASE_URL: 'https://test.supabase.co',
-        DEV: true,
-        PROD: false,
-      },
-    },
+      env: mockEnv
+    }
   },
   writable: true,
 });
+
+// Also mock process.env for compatibility
+Object.defineProperty(process, 'env', {
+  value: {
+    ...process.env,
+    ...mockEnv
+  },
+  writable: true,
+});
+
+// Mock scrollIntoView for JSDOM
+Element.prototype.scrollIntoView = jest.fn();
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -53,7 +69,9 @@ beforeAll(() => {
   console.error = (...args: any[]) => {
     if (
       typeof args[0] === 'string' &&
-      args[0].includes('Warning: ReactDOM.render is no longer supported')
+      (args[0].includes('Warning: ReactDOM.render is no longer supported') ||
+       args[0].includes('Element type is invalid') ||
+       args[0].includes('Target container is not a DOM element'))
     ) {
       return;
     }
