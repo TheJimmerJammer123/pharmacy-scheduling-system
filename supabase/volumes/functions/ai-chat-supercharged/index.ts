@@ -261,25 +261,25 @@ DATABASE SCHEMA:
 - messages: id, contact_id, content, direction, status, capcom6_message_id, ai_generated, requires_acknowledgment, acknowledgment_code, acknowledged_at, acknowledgment_message_id, metadata, created_at
 
 RESPONSE GUIDELINES:
-1. Provide actionable insights and recommendations
-2. Use data to support all claims
-3. Suggest follow-up actions when appropriate
-4. Format responses clearly with sections and bullet points
-5. Include relevant metrics and statistics
-6. Offer proactive suggestions for optimization
+1. Be concise and direct - provide answers without lengthy explanations
+2. Use actual data from queries, never placeholder text like "[Employee Name]"
+3. If no data is found, say so clearly
+4. Only provide essential information requested
+5. Don't explain how you arrived at the answer unless specifically asked
 
 QUERY EXECUTION:
-- Use SQL for complex data analysis
-- Combine multiple queries for comprehensive insights  
-- Validate all data before presenting
-- Explain query logic and results
-- Suggest optimizations and improvements
+- Execute SQL queries to get real data
+- Use actual query results in your response
+- If query returns empty results, state "No data found"
+- Present data clearly and concisely
+
+CRITICAL: When you execute EXECUTE_QUERY: [SQL], you MUST wait for and use the actual results.
+NEVER use placeholder text like "[Employee Name]" - always use real data from query results.
 
 For data queries, format as: EXECUTE_QUERY: [SQL]
 For actions, format as: SUGGEST_ACTION: [action_name] [parameters]
-For workflows, format as: TRIGGER_WORKFLOW: [workflow_id] [data]
 
-Always provide context, insights, and actionable recommendations.`
+Provide direct, factual answers using real data.`
     }
 
     // Select optimal model
@@ -396,17 +396,21 @@ Always provide context, insights, and actionable recommendations.`
     const aiData = await aiResponse.json()
     const aiResponseText = aiData.choices[0].message.content
 
-    // Execute any data queries mentioned in the AI response
+    // Execute any data queries mentioned in the AI response and get final response
     let dataResults: any[] = []
     let queryExecuted = ''
     let queriesExecuted = 0
+    let finalResponse = aiResponseText
 
     if (aiResponseText.includes('EXECUTE_QUERY:')) {
       try {
-        const queryMatches = aiResponseText.match(/EXECUTE_QUERY:\s*(.*?)(?=\n|$)/g) || []
+        const queryMatches = aiResponseText.match(/EXECUTE_QUERY:\s*(.*?)(?=\n|```|$)/gs) || []
         
         for (const queryMatch of queryMatches) {
-          const sqlQuery = queryMatch.replace('EXECUTE_QUERY:', '').trim()
+          let sqlQuery = queryMatch.replace('EXECUTE_QUERY:', '').trim()
+          // Remove markdown code blocks if present
+          sqlQuery = sqlQuery.replace(/```[^`]*```|```/g, '').trim()
+          
           console.log(`Executing query: ${sqlQuery}`)
           
           const { data, error } = await supabase.rpc('exec_sql', { 
@@ -415,14 +419,54 @@ Always provide context, insights, and actionable recommendations.`
           
           if (error) {
             console.error('Query error:', error)
+            finalResponse += `\n\n❌ Query Error: ${error.message}`
           } else {
             dataResults.push(data)
             queryExecuted = sqlQuery
             queriesExecuted++
+            
+            // Generate a follow-up response with the actual data
+            console.log('Query results:', data)
+            
+            if (data && Array.isArray(data) && data.length > 0) {
+              // Create a second AI call with the data results
+              const dataPrompt = `The user asked: "${message}"
+              
+I executed this SQL query: ${sqlQuery}
+Results: ${JSON.stringify(data, null, 2)}
+
+Please provide a concise, direct answer using this real data. Don't explain the process, just give the factual answer based on the results.`
+
+              const dataResponse = await fetch(selectedModel.endpoint, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
+                  'Content-Type': 'application/json',
+                  'HTTP-Referer': Deno.env.get('API_EXTERNAL_URL') || 'http://100.120.219.68:8002',
+                  'X-Title': 'Pharmacy Scheduling AI Supercharged'
+                },
+                body: JSON.stringify({
+                  model: selectedModel.model_id,
+                  messages: [
+                    { role: 'user', content: dataPrompt }
+                  ],
+                  temperature: 0.3,
+                  max_tokens: 500
+                })
+              })
+              
+              if (dataResponse.ok) {
+                const dataResponseData = await dataResponse.json()
+                finalResponse = dataResponseData.choices[0].message.content
+              }
+            } else {
+              finalResponse = "No data found for the requested criteria."
+            }
           }
         }
       } catch (error) {
         console.error('Query execution error:', error)
+        finalResponse += `\n\n❌ Execution Error: ${error.message}`
       }
     }
 
@@ -464,7 +508,7 @@ Always provide context, insights, and actionable recommendations.`
         // Store AI response
         await supabase.from('messages').insert({
           contact_id: user_id,
-          content: aiResponseText,
+          content: finalResponse,
           direction: 'outbound',
           status: 'sent',
           ai_generated: true,
@@ -483,7 +527,7 @@ Always provide context, insights, and actionable recommendations.`
 
     // Build comprehensive response
     const response: ChatResponse = {
-      response: aiResponseText,
+      response: finalResponse,
       model_used: selectedModel.name,
       data_results: dataResults.length > 0 ? dataResults : undefined,
       suggested_actions: suggestedActions.length > 0 ? suggestedActions : undefined,
