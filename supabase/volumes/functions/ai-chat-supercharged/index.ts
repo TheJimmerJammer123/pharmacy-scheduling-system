@@ -94,7 +94,7 @@ serve(async (req) => {
       {
         name: 'gpt-4-turbo',
         endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-        model_id: 'openai/gpt-4-turbo',
+        model_id: 'openai/gpt-4-turbo-preview',
         max_tokens: 4000,
         strengths: ['complex reasoning', 'multi-step analysis', 'business logic'],
         cost_tier: 'high'
@@ -110,7 +110,7 @@ serve(async (req) => {
       {
         name: 'qwen3-coder',
         endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-        model_id: 'qwen/qwen3-coder:free',
+        model_id: 'qwen/qwen-2.5-coder-32b-instruct',
         max_tokens: 2000,
         strengths: ['sql generation', 'technical queries', 'code analysis'],
         cost_tier: 'low'
@@ -339,7 +339,58 @@ Always provide context, insights, and actionable recommendations.`
     })
 
     if (!aiResponse.ok) {
-      throw new Error(`AI model error: ${aiResponse.statusText}`)
+      const errorText = await aiResponse.text()
+      console.error(`AI model error: ${selectedModel.model_id} failed with ${aiResponse.status}: ${errorText}`)
+      
+      // Try to fallback to GPT-3.5-turbo if the selected model fails
+      if (selectedModel.name !== 'gpt-3.5-turbo') {
+        console.log('Attempting fallback to GPT-3.5-turbo...')
+        const fallbackModel = availableModels.find(m => m.name === 'gpt-3.5-turbo')!
+        
+        const fallbackResponse = await fetch(fallbackModel.endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': Deno.env.get('API_EXTERNAL_URL') || 'http://100.120.219.68:8002',
+            'X-Title': 'Pharmacy Scheduling AI Supercharged'
+          },
+          body: JSON.stringify({
+            model: fallbackModel.model_id,
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: fallbackModel.max_tokens
+          })
+        })
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json()
+          const fallbackText = fallbackData.choices[0].message.content
+          
+          // Continue with fallback response
+          const response: ChatResponse = {
+            response: `⚠️ **Fallback Model Used**: The requested ${selectedModel.name} model was unavailable, so I used GPT-3.5-turbo instead.\n\n${fallbackText}`,
+            model_used: `${selectedModel.name} → ${fallbackModel.name} (fallback)`,
+            conversation_id: conversationId,
+            performance_metrics: {
+              response_time_ms: Date.now() - startTime,
+              model_selection_reason: `Fallback from ${selectedModel.name} to ${fallbackModel.name}`,
+              data_queries_executed: 0,
+              tokens_used: fallbackModel.max_tokens
+            }
+          }
+          
+          return new Response(
+            JSON.stringify(response),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          )
+        }
+      }
+      
+      throw new Error(`AI model error: ${selectedModel.model_id} - ${aiResponse.status} ${aiResponse.statusText}. Details: ${errorText}`)
     }
 
     const aiData = await aiResponse.json()
