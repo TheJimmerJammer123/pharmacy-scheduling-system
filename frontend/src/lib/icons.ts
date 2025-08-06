@@ -27,4 +27,18 @@ export {
   MapPin,
   Bot,
   Upload,
+  // Additional icons for supercharged AI chatbot
+  Database,
+  Copy,
+  Download,
+  Mic,
+  MicOff,
+  Brain,
+  Zap,
+  CheckCircle,
+  AlertCircle,
+  BarChart3,
+  Play,
+  Pause,
+  RotateCcw,
 } from "lucide-react";
