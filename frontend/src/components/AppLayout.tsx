@@ -16,6 +16,7 @@ const DailySummaryCalendar = lazy(() => import("./DailySummaryCalendar").then(mo
 const StoreScheduling = lazy(() => import("./StoreScheduling").then(module => ({ default: module.StoreScheduling })));
 const EmployeeScheduling = lazy(() => import("./EmployeeScheduling").then(module => ({ default: module.EmployeeScheduling })));
 const ChatbotInterface = lazy(() => import("./ChatbotInterface").then(module => ({ default: module.ChatbotInterface })));
+const ChatbotInterfaceSuper = lazy(() => import("./ChatbotInterfaceSuper").then(module => ({ default: module.ChatbotInterfaceSuper })));
 const DocumentUpload = lazy(() => import("./DocumentUpload").then(module => ({ default: module.DocumentUpload })));
 
 export const AppLayout = () => {
@@ -105,7 +106,7 @@ export const AppLayout = () => {
       case "chatbot":
         return (
           <Suspense fallback={<LoadingSpinner />}>
-            <ChatbotInterface activeTab={activeTab} />
+            <ChatbotInterfaceSuper activeTab={activeTab} />
           </Suspense>
         );
       case "document-upload":
