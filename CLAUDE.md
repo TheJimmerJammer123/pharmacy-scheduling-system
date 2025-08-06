@@ -65,6 +65,7 @@ This project uses 9 specialized subagents for different aspects of development. 
 
 ### **Security & Quality**
 - **`pharmacy-security-authentication-specialist`**: JWT configuration, RLS policies, HIPAA compliance, audit logging
+- **`pharmacy-api-management-specialist`**: API endpoint management, webhook configuration, authentication troubleshooting, integration testing
 
 ## 🚀 **QUICK START**
 
@@ -288,22 +289,22 @@ All pull requests to `main` must pass:
 
 ## 📊 **SYSTEM STATUS**
 
-### **Current System Status** ✅ FULLY OPERATIONAL (All Services)
-- ✅ **Docker Services**: 8/8 services healthy and operational
+### **Current System Status** ✅ FULLY OPERATIONAL (8/9 Services)
+- ✅ **Docker Services**: 8/9 services healthy and operational
 - ✅ **Database Schema**: Complete pharmacy schema with sample data
-- ✅ **REST API Endpoints**: All endpoints operational with authentication
-- ✅ **Frontend**: React app with hot reload development environment
+- ✅ **REST API Endpoints**: All endpoints operational with authentication via Tailscale
+- ✅ **Frontend**: React app with hot reload on http://100.120.219.68:3000
 - ✅ **SMS Integration**: Complete two-way SMS communication via Capcom6
-- ✅ **AI Assistant**: OpenRouter integration with Qwen3 Coder model
-- ✅ **Workflow Automation**: n8n platform operational
+- ✅ **AI Assistant**: OpenRouter integration with GPT-3.5-turbo model
+- ✅ **Workflow Automation**: n8n platform operational at http://100.120.219.68:5678
 - ✅ **Storage Service**: File storage for document uploads fully working
-- ✅ **API Gateway**: Kong routing and authentication working
+- ✅ **API Gateway**: Kong routing and authentication working at http://100.120.219.68:8002
 - ✅ **Edge Functions**: SMS and AI webhook processing operational
 - ✅ **Realtime Service**: WebSocket subscriptions fully operational (v2.30.34)
 - ✅ **GitHub Actions**: CI/CD pipeline with emergency rollback capabilities
 
-### **Minor Service Issues** (1 service disabled)
-- ❌ **Auth Service**: Database function permissions issue (JWT auth working via API keys)
+### **Minor Service Issues** (1 service has configuration issues)
+- ⚠️ **Auth Service**: Database function permissions issue (JWT auth working via API keys)
 
 ### **Repository Details**
 - **GitHub Repository**: https://github.com/TheJimmerJammer123/pharmacy-scheduling-system

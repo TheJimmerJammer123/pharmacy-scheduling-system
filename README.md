@@ -127,10 +127,9 @@ pharm-project/
    ```
 
 3. Access the services:
-   - Frontend: [http://localhost:3000](http://localhost:3000) ✅ **OPERATIONAL**
-   - Supabase Studio: [http://localhost:3001](http://localhost:3001) ✅ **OPERATIONAL**
-   - API Gateway (Kong): [http://localhost:8002](http://localhost:8002) ✅ **OPERATIONAL**
-   - n8n Workflow Platform: [http://localhost:5678](http://localhost:5678) ✅ **OPERATIONAL**
+   - Frontend: [http://100.120.219.68:3000](http://100.120.219.68:3000) ✅ **OPERATIONAL**
+   - API Gateway (Kong): [http://100.120.219.68:8002](http://100.120.219.68:8002) ✅ **OPERATIONAL**
+   - n8n Workflow Platform: [http://100.120.219.68:5678](http://100.120.219.68:5678) ✅ **OPERATIONAL**
 
 ## 🛠️ Development
 
@@ -232,11 +231,11 @@ Once started, access these services:
 - **🔍 Advanced AI**: SQL query capabilities for AI chatbot (enhancement planned)
 - **📈 Advanced Analytics**: Comprehensive reporting and insights
 
-### ✅ **All Services Operational**
+### ✅ **Service Status (8/9 Operational)**
 - **🔄 Realtime Service**: ✅ **FULLY OPERATIONAL** - WebSocket subscriptions and live updates working
 - **📁 Storage Service**: ✅ **FULLY OPERATIONAL** - Document upload and storage working
-- **📊 Supabase Studio**: Not included (not needed in production)
-- **🔗 Connection Pooler**: Disabled due to restart issues (not needed at current scale)
+- **🔐 Auth Service**: ⚠️ **MINOR ISSUES** - Database function permissions (JWT auth working via API keys)
+- **🔗 Connection Pooler**: Disabled (not needed at current scale)
 
 ### 🎯 **Next Priority Features**
 - Employee onboarding automation via n8n workflows
