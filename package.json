@@ -1,6 +1,6 @@
 {
   "name": "pharm-project",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A comprehensive pharmacy scheduling and communication system designed for pharmacist schedulers to manage employee schedules, handle SMS communications, and interact with an AI chatbot for intelligent scheduling assistance.",
   "main": "scripts/data-processing/import-complete-dataset.js",
   "scripts": {
