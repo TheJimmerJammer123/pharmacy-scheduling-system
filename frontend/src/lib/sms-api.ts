@@ -17,7 +17,7 @@ export class SMSApiClient {
   // SMS sending via Supabase Edge Function (handles CORS and server-side Capcom6 calls)
   static async sendSMS(request: SendSMSRequest): Promise<SendSMSResponse> {
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8002';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://100.120.219.68:8002';
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       const response = await fetch(`${supabaseUrl}/functions/v1/send-sms-v3`, {

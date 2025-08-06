@@ -55,7 +55,7 @@ services:
       - /app/node_modules
     environment:
       # Core Supabase Configuration
-      - VITE_SUPABASE_URL=http://localhost:8002
+      - VITE_SUPABASE_URL=http://100.120.219.68:8002
       - VITE_SUPABASE_ANON_KEY=${ANON_KEY}
       - VITE_SUPABASE_SERVICE_KEY=${SERVICE_ROLE_KEY}
       
@@ -67,7 +67,7 @@ services:
       - VITE_CAPCOM6_API_URL=http://100.126.232.47:8080/message
       - VITE_CAPCOM6_USERNAME=sms
       - VITE_CAPCOM6_PASSWORD=${CAPCOM6_PASSWORD}
-      - VITE_WEBHOOK_BASE_URL=http://localhost:8002
+      - VITE_WEBHOOK_BASE_URL=http://100.120.219.68:8002
       
       # AI Configuration
       - VITE_OPENROUTER_API_KEY=${OPENROUTER_API_KEY}

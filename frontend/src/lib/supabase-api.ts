@@ -594,6 +594,130 @@ export class SupabaseApiClient {
     const { data: { session }, error } = await supabase.auth.getSession();
     return this.wrapResponse(session, error);
   }
+
+  // Employee scheduling methods
+  static async getAllEmployees(): Promise<ApiResponse<Array<{ employee_name: string }>>> {
+    // Use the contacts table since employees are stored there
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('name')
+      .order('name');
+
+    if (error) {
+      return this.wrapResponse(null, error);
+    }
+
+    // Transform contacts to employee format
+    const employees = (data || []).map(contact => ({
+      employee_name: contact.name
+    }));
+
+    return {
+      success: true,
+      data: employees
+    };
+  }
+
+  static async getEmployeeSchedules(employeeName: string, startDate?: string, endDate?: string): Promise<ApiResponse<any[]>> {
+    let query = supabase
+      .from('store_schedules')
+      .select('*')
+      .eq('employee_name', employeeName);
+    
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+    
+    const { data: schedules, error } = await query.order('date');
+    
+    if (error) {
+      return this.wrapResponse(null, error);
+    }
+
+    if (!schedules || schedules.length === 0) {
+      return this.wrapResponse([], null);
+    }
+
+    // Get store information separately for each unique store_number
+    const storeNumbers = [...new Set(schedules.map(s => s.store_number))];
+    const storePromises = storeNumbers.map(storeNumber => 
+      supabase
+        .from('stores')
+        .select('store_number, address, city, state')
+        .eq('store_number', storeNumber)
+        .single()
+    );
+
+    const storeResults = await Promise.all(storePromises);
+    
+    // Create a map of store_number to store info
+    const storeMap = new Map();
+    storeResults.forEach(({ data: store, error: storeError }) => {
+      if (!storeError && store) {
+        storeMap.set(store.store_number, store);
+      }
+    });
+
+    // Transform the data to include store information
+    const transformedData = schedules.map(schedule => {
+      const store = storeMap.get(schedule.store_number);
+      return {
+        ...schedule,
+        store_name: store ? `${store.city}, ${store.state}` : `Store #${schedule.store_number}`,
+        store_address: store?.address || 'Unknown Address'
+      };
+    });
+
+    // Deduplicate based on unique combination of employee_name, date, store_number, and shift_time
+    // Keep the most recently created record for each duplicate set
+    const deduplicatedData = transformedData.reduce((acc, current) => {
+      const key = `${current.employee_name}-${current.date}-${current.store_number}-${current.shift_time}`;
+      const existing = acc.get(key);
+      
+      if (!existing || new Date(current.created_at) > new Date(existing.created_at)) {
+        acc.set(key, current);
+      }
+      
+      return acc;
+    }, new Map());
+
+    const finalData = Array.from(deduplicatedData.values()).sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    return this.wrapResponse(finalData, null);
+  }
+
+  static async getEmployeeNotes(employeeName: string): Promise<ApiResponse<Array<{ notes: string }>>> {
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('notes')
+      .eq('name', employeeName)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+      return this.wrapResponse(null, error);
+    }
+
+    return {
+      success: true,
+      data: data ? [{ notes: data.notes || '' }] : []
+    };
+  }
+
+  static async saveEmployeeNotes(employeeName: string, notes: string): Promise<ApiResponse<any>> {
+    const { data, error } = await supabase
+      .from('contacts')
+      .update({ notes: notes })
+      .eq('name', employeeName)
+      .select()
+      .single();
+
+    return this.wrapResponse(data, error);
+  }
 }
 
 // For backward compatibility, export as ApiClient

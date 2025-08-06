@@ -1,4 +1,4 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8002';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://100.120.219.68:8002';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Types matching backend interfaces
