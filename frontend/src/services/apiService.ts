@@ -247,7 +247,7 @@ class ApiService {
   // Note: Employee data is extracted from schedule entries in components
 
   // Schedule entries (backend uses /api/schedule-entries)
-  async getAllStoreSchedules(params?: { employee_name?: string; store_number?: number; date_from?: string; date_to?: string; }): Promise<any[]> {
+  async getAllStoreSchedules(params?: { employee_name?: string; store_number?: number; date_from?: string; date_to?: string; limit?: number; offset?: number; }): Promise<any[]> {
     const response: AxiosResponse<any[]> = await this.api.get('/api/schedule-entries', { params });
     return response.data;
   }
@@ -257,12 +257,12 @@ class ApiService {
     return response.data;
   }
 
-  async updateStoreSchedule(id: number, data: { store_number: number; date: string; employee_name: string; shift_time: string; notes?: string; employee_id?: string; role?: string; employee_type?: string; scheduled_hours?: number; }): Promise<any> {
+  async updateStoreSchedule(id: string, data: { store_number: number; date: string; employee_name: string; shift_time: string; notes?: string; employee_id?: string; role?: string; employee_type?: string; scheduled_hours?: number; }): Promise<any> {
     const response: AxiosResponse<any> = await this.api.put(`/api/schedule-entries/${id}`, data);
     return response.data;
   }
 
-  async deleteStoreSchedule(id: number): Promise<boolean> {
+  async deleteStoreSchedule(id: string): Promise<boolean> {
     await this.api.delete(`/api/schedule-entries/${id}`);
     return true;
   }

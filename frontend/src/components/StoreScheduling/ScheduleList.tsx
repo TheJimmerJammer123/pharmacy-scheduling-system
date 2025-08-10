@@ -9,7 +9,7 @@ interface ScheduleListProps {
   schedulesForSelectedDate: StoreSchedule[];
   onAddSchedule: () => void;
   onEditSchedule: (schedule: StoreSchedule) => void;
-  onDeleteSchedule: (id: number) => void;
+  onDeleteSchedule: (id: string) => void;
 }
 
 export const ScheduleList = memo(({

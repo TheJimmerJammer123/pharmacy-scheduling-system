@@ -48,6 +48,13 @@ export const CalendarPanel: React.FC<CalendarPanelProps> = ({
 
   const calendarDays = getCalendarDays();
 
+  const toLocalYMD = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   return (
     <div className="h-full p-4">
       <Card className="h-full">
@@ -87,7 +94,7 @@ export const CalendarPanel: React.FC<CalendarPanelProps> = ({
             {calendarDays.map((day, index) => {
               const isCurrentMonth = day.getMonth() === currentDate.getMonth();
               const isToday = day.toDateString() === new Date().toDateString();
-              const isSelected = selectedDate && day.toISOString().split('T')[0] === selectedDate;
+              const isSelected = selectedDate && toLocalYMD(day) === selectedDate;
               const dayHasSchedules = hasSchedules(day);
               
               return (
