@@ -60,14 +60,17 @@ export const EmployeeScheduling = memo(({ activeTab, setActiveTab }: EmployeeSch
   const loadEmployees = async () => {
     setIsLoadingEmployees(true);
     try {
-      // TODO: Implement employee fetching in the new backend
-      // For now, get unique employee names from contacts
-      const contacts = await apiService.getContacts();
-      if (contacts) {
-        const employeeNames = contacts.map(contact => ({ employee_name: contact.name }));
-        setEmployees(employeeNames);
-        if (employeeNames.length > 0 && !selectedEmployee) {
-          setSelectedEmployee(employeeNames[0].employee_name);
+      // Get all schedule entries and extract unique employee names
+      const schedules = await apiService.getAllStoreSchedules();
+      if (schedules) {
+        // Extract unique employees from schedule entries
+        const uniqueEmployees = Array.from(
+          new Set(schedules.map(s => s.employee_name))
+        ).map(name => ({ employee_name: name }));
+        
+        setEmployees(uniqueEmployees);
+        if (uniqueEmployees.length > 0 && !selectedEmployee) {
+          setSelectedEmployee(uniqueEmployees[0].employee_name);
         }
       }
     } catch (error) {

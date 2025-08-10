@@ -244,6 +244,8 @@ class ApiService {
     return response.data;
   }
 
+  // Note: Employee data is extracted from schedule entries in components
+
   // Schedule entries (backend uses /api/schedule-entries)
   async getAllStoreSchedules(params?: { employee_name?: string; store_number?: number; date_from?: string; date_to?: string; }): Promise<any[]> {
     const response: AxiosResponse<any[]> = await this.api.get('/api/schedule-entries', { params });

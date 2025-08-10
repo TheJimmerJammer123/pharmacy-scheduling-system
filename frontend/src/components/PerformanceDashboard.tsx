@@ -74,7 +74,8 @@ const PerformanceDashboard: React.FC = () => {
   // Fetch backend performance metrics
   const fetchBackendMetrics = async () => {
     try {
-      const response = await fetch('/api/performance/report', {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://100.120.219.68:3001';
+      const response = await fetch(`${backendUrl}/api/performance/report`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }

@@ -34,7 +34,7 @@ export const ScheduleList = memo(({
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-medium text-sm flex items-center gap-2">
           <Calendar className="w-4 h-4 text-primary" />
-          Pharmacist Schedules - {formatSelectedDate()}
+          Employee Schedules - {formatSelectedDate()}
         </h4>
         <Button
           onClick={onAddSchedule}
@@ -61,7 +61,7 @@ export const ScheduleList = memo(({
       ) : (
         <div className="text-center py-4 text-muted-foreground">
           <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">No pharmacist schedules for this date</p>
+          <p className="text-sm">No employee schedules for this date</p>
         </div>
       )}
     </div>

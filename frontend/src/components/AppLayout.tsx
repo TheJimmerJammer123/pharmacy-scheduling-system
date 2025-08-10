@@ -24,20 +24,76 @@ export const AppLayout = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
-  // Fetch unread message count
+  // Auto-login hook
+  useEffect(() => {
+    const autoLogin = async () => {
+      try {
+        // Check if already authenticated
+        const existingToken = localStorage.getItem('authToken');
+        if (existingToken) {
+          console.log('✅ Already authenticated with existing token');
+          return;
+        }
+        
+        console.log('🔐 Auto-login: Starting authentication...');
+        
+        // Login with admin credentials
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://100.120.219.68:3001';
+        const response = await fetch(`${backendUrl}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: 'admin',
+            password: 'admin'
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.token) {
+            localStorage.setItem('authToken', data.token);
+            apiService.setAuthToken(data.token);
+            console.log('✅ Auto-login successful!', data.user);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Auto-login failed:', error);
+      }
+    };
+    
+    autoLogin();
+  }, []);
+
+  // Fetch unread message count  
   const fetchUnreadCount = async () => {
     try {
-      const messages = await apiService.getMessages();
-      if (messages) {
-        // Count unread inbound messages
-        const unreadCount = messages.filter(msg => 
-          msg.direction === 'inbound' && msg.status !== 'read'
-        ).length;
-        console.log('[AppLayout] Unread message count:', unreadCount);
-        setUnreadMessageCount(unreadCount);
+      // Get all contacts first, then get messages for each
+      const contacts = await apiService.getContacts();
+      let totalUnreadCount = 0;
+      
+      if (contacts) {
+        for (const contact of contacts.slice(0, 10)) { // Limit to first 10 contacts for performance
+          try {
+            const messages = await apiService.getMessages(contact.id, { limit: 50 });
+            const unreadCount = messages.filter(msg => 
+              msg.direction === 'inbound' && msg.status !== 'read'
+            ).length;
+            totalUnreadCount += unreadCount;
+          } catch (msgError) {
+            // Skip this contact if messages fail to load
+            console.warn(`Failed to load messages for contact ${contact.id}:`, msgError);
+          }
+        }
       }
+      
+      console.log('[AppLayout] Total unread message count:', totalUnreadCount);
+      setUnreadMessageCount(totalUnreadCount);
     } catch (error) {
       console.error('Error fetching unread message count:', error);
+      // Set to 0 if we can't fetch
+      setUnreadMessageCount(0);
     }
   };
 

@@ -192,6 +192,31 @@ class ScheduleService {
       throw error;
     }
   }
+
+  async getEmployees() {
+    try {
+      const query = `
+        SELECT DISTINCT 
+          employee_name,
+          employee_id,
+          role,
+          employee_type,
+          region,
+          COUNT(*) as total_shifts
+        FROM schedule_entries 
+        WHERE employee_name IS NOT NULL AND employee_name != ''
+        GROUP BY employee_name, employee_id, role, employee_type, region
+        ORDER BY employee_name
+      `;
+      
+      const result = await db.query(query);
+      logger.info('Fetched employees', { count: result.rows.length });
+      return result.rows;
+    } catch (error) {
+      logger.error('Error fetching employees', { error: error.message });
+      throw error;
+    }
+  }
 }
 
 module.exports = new ScheduleService();

@@ -283,6 +283,12 @@ app.delete('/api/schedule-entries/:id', authenticateUser, validateUUID('id'), as
   res.json({ success: true, message: 'Schedule entry deleted successfully' });
 }));
 
+// Get unique employees from schedule entries
+app.get('/api/employees', authenticateUser, asyncHandler(async (req, res) => {
+  const employees = await scheduleService.getEmployees();
+  res.json(employees);
+}));
+
 // Statistics endpoints
 app.get('/api/stats/dashboard', authenticateUser, asyncHandler(async (req, res) => {
   const [contactStats, messageStats, scheduleStats] = await Promise.all([
