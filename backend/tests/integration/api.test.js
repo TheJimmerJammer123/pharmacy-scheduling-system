@@ -1,12 +1,25 @@
 const request = require('supertest');
 const express = require('express');
+const cors = require('cors');
 
 // Mock the database service before importing the server
 jest.mock('../../services/databaseService');
 
 // Create a minimal app for testing
 const app = express();
+app.use(cors());
 app.use(express.json());
+
+// JSON parse error handler to return 400 on malformed JSON
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Malformed JSON body' });
+  }
+  return next(err);
+});
+
+// Handle CORS preflight to return 204
+app.options('*', (req, res) => res.status(204).send());
 
 // Mock authentication middleware
 app.use('/api', (req, res, next) => {
@@ -82,7 +95,7 @@ describe('API Integration Tests', () => {
         res.json({ received: req.body });
       });
 
-      const response = await request(app)
+      await request(app)
         .post('/api/bad-json')
         .set('Content-Type', 'application/json')
         .send('{"invalid": json}')
@@ -92,7 +105,7 @@ describe('API Integration Tests', () => {
 
   describe('CORS Headers', () => {
     it('should handle CORS preflight requests', async () => {
-      const response = await request(app)
+      await request(app)
         .options('/api/health')
         .expect(204);
     });

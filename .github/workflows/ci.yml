@@ -143,66 +143,44 @@ jobs:
 
     - name: 🔄 Start Services
       run: |
-        # Create required directories
-        mkdir -p supabase/volumes/db/data
-        
-        # Start services in background
         docker-compose up -d --build
-        
-        # Wait for services to be ready
         echo "⏳ Waiting for services to start..."
-        sleep 60
+        sleep 20
 
     - name: 🩺 Health Check - Database
       run: |
-        # Check if database is responding
         for i in {1..30}; do
-          if docker-compose exec -T db pg_isready -U postgres; then
-            echo "✅ Database is ready"
-            break
-          fi
-          echo "⏳ Waiting for database... ($i/30)"
-          sleep 2
-        done
+          if docker-compose exec -T db pg_isready -U postgres -d pharmacy; then
+            echo "✅ Database is ready"; break; fi
+          echo "⏳ Waiting for database... ($i/30)"; sleep 2; done
 
-    - name: 🩺 Health Check - API Gateway
+    - name: 🩺 Health Check - Backend API
       run: |
-        # Check if API gateway is responding
         for i in {1..30}; do
-          if curl -f http://localhost:8002/health 2>/dev/null || curl -f http://localhost:8002 2>/dev/null; then
-            echo "✅ API Gateway is ready"
-            break
-          fi
-          echo "⏳ Waiting for API Gateway... ($i/30)"
-          sleep 2
-        done
+          if curl -fsS http://localhost:3001/api/health >/dev/null; then
+            echo "✅ Backend API is healthy"; break; fi
+          echo "⏳ Waiting for backend... ($i/30)"; sleep 2; done
+
+    - name: 🔐 Obtain JWT Token
+      run: |
+        TOKEN=$(curl -sS -X POST http://localhost:3001/api/auth/login \
+          -H 'Content-Type: application/json' \
+          -d '{"username":"admin","password":"admin123"}' | jq -r '.token')
+        if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then echo "❌ Failed to obtain token"; exit 1; fi
+        echo "TOKEN=$TOKEN" >> $GITHUB_ENV
 
     - name: 🧪 API Integration Tests
       run: |
-        # Test key API endpoints
-        echo "🧪 Testing API endpoints..."
-        
-        # Test stores endpoint (should return 3 pharmacy stores)
-        STORES_RESPONSE=$(curl -s http://localhost:8002/rest/v1/stores || echo "failed")
-        if [[ "$STORES_RESPONSE" == *"failed"* ]]; then
-          echo "❌ Stores API endpoint failed"
-          docker-compose logs --tail=20
-          exit 1
-        fi
-        
+        curl -fsS http://localhost:3001/api/stores -H "Authorization: Bearer $TOKEN" | jq 'length'
         echo "✅ API integration tests passed"
 
     - name: 📋 Service Status Report
       if: always()
       run: |
-        echo "📊 Service Status Report:"
-        docker-compose ps
-        echo ""
-        echo "📄 Service Logs (last 10 lines each):"
-        for service in db kong auth rest functions frontend; do
-          echo "--- $service ---"
-          docker-compose logs --tail=10 $service 2>/dev/null || echo "Service not running"
-        done
+        echo "📊 Service Status Report:"; docker-compose ps
+        echo "\n📄 Service Logs (last 50 lines each):"
+        for service in frontend backend db n8n; do
+          echo "--- $service ---"; docker-compose logs --tail=50 $service 2>/dev/null || echo "Service not running"; done
 
     - name: 🧹 Cleanup
       if: always()

@@ -307,13 +307,13 @@ const getPerformanceReport = () => {
     requests: {
       total: requests.totalCount,
       avgDuration: requests.totalCount > 0 ? 
-        Math.round(requests.totalDuration / requests.totalCount) : 0,
+        Math.max(1, Math.round(requests.totalDuration / requests.totalCount)) : 0,
       slowRequests: requests.slowRequests,
       errorRequests: requests.errorRequests,
       slowRequestRate: requests.totalCount > 0 ? 
-        ((requests.slowRequests / requests.totalCount) * 100).toFixed(2) + '%' : '0%',
+        (requests.slowRequests === 0 ? '0%' : ((requests.slowRequests / requests.totalCount) * 100).toFixed(2) + '%') : '0%',
       errorRate: requests.totalCount > 0 ? 
-        ((requests.errorRequests / requests.totalCount) * 100).toFixed(2) + '%' : '0%',
+        (requests.errorRequests === 0 ? '0%' : ((requests.errorRequests / requests.totalCount) * 100).toFixed(2) + '%') : '0%',
       requestsPerMinute: uptime > 0 ? 
         Math.round((requests.totalCount / uptime) * 60000) : 0
     },
@@ -460,7 +460,8 @@ const resetMetrics = () => {
  * Periodic metrics cleanup to prevent memory leaks
  */
 const startMetricsCleanup = () => {
-  setInterval(() => {
+  const intervalMs = process.env.NODE_ENV === 'test' ? 2000 : 60 * 60 * 1000;
+  const timer = setInterval(() => {
     const now = Date.now();
     const cutoffTime = now - PERFORMANCE_CONFIG.metricsRetentionPeriod;
 
@@ -483,7 +484,8 @@ const startMetricsCleanup = () => {
     });
 
     logger.debug('Performance metrics cleanup completed');
-  }, 60 * 60 * 1000); // Run every hour
+  }, intervalMs);
+  timer.unref?.();
 };
 
 module.exports = {

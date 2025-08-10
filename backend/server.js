@@ -36,6 +36,7 @@ const messageService = require('./services/messageService');
 const smsService = require('./services/smsService');
 const scheduleService = require('./services/scheduleService');
 const aiService = require('./services/aiService');
+const excelIngestionService = require('./services/excelIngestionService');
 require('dotenv').config();
 
 // Validate security configuration on startup
@@ -92,8 +93,20 @@ const requireAdmin = (req, res, next) => {
 // Security middleware
 app.use(securityMiddleware);
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+const rawBodySaver = (req, res, buf, encoding) => {
+  if (buf && buf.length) {
+    req.rawBody = buf.toString(encoding || 'utf8');
+  }
+};
+app.use(express.json({ limit: '100mb', verify: rawBodySaver }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+// Handle malformed JSON early
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Malformed JSON body' });
+  }
+  return next(err);
+});
 app.use(sanitizeRequest);
 app.use(requestLogger);
 app.use(securityLogger);
@@ -325,6 +338,29 @@ app.get('/api/messages', authenticateUser, asyncHandler(async (req, res) => {
   res.json(messages);
 }));
 
+// Document processing - Excel ingestion
+app.post('/api/documents/process-excel', authenticateUser, asyncHandler(async (req, res) => {
+  const { import_id, file_name, file_type, content } = req.body || {};
+
+  if (!content || typeof content !== 'string') {
+    return res.status(400).json({ error: 'content (base64) is required' });
+  }
+
+  if (file_type && !['excel', 'xlsx', 'xls'].includes(String(file_type).toLowerCase())) {
+    return res.status(400).json({ error: 'file_type must be excel/xlsx/xls' });
+  }
+
+  const importId = import_id || `import-${Date.now()}`;
+
+  const results = await excelIngestionService.processExcel({
+    importId,
+    fileName: file_name || 'upload.xlsx',
+    base64Content: content,
+  });
+
+  res.json({ success: true, import_id: importId, message: 'Excel file processed successfully', results });
+}));
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -375,6 +411,11 @@ process.on('unhandledRejection', (reason, promise) => {
 // Error handling middleware (must be last)
 app.use('*', notFoundHandler);
 app.use(globalErrorHandler);
+
+// Handle CORS preflight quickly
+app.options('*', (req, res) => {
+  res.status(204).send();
+});
 
 // Start performance monitoring
 monitorPerformance();
