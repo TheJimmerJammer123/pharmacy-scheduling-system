@@ -75,22 +75,29 @@ export const useStoreScheduling = (activeTab: string) => {
     }
   }, [handleError]);
 
-  // Fetch all store schedules
+  // Fetch schedules for the selected store and current month
   const fetchSchedules = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await apiService.getAllStoreSchedules();
-      console.log('Fetched schedules:', data?.length || 0);
-      if (data && data.length > 0) {
-        console.log('Sample schedule:', data[0]);
-      }
+      // Compute month range in local time to avoid TZ drift
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const dateFrom = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}-${String(monthStart.getDate()).padStart(2, '0')}`;
+      const dateTo = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth() + 1).padStart(2, '0')}-${String(monthEnd.getDate()).padStart(2, '0')}`;
+
+      const data = await apiService.getAllStoreSchedules({
+        store_number: selectedStore,
+        date_from: dateFrom,
+        date_to: dateTo,
+      });
+
       setSchedules(data || []);
     } catch (error) {
       handleError(error, "fetchSchedules");
     } finally {
       setIsLoading(false);
     }
-  }, [handleError]);
+  }, [handleError, selectedStore, currentDate]);
 
   // Handle date selection
   const handleDateSelect = (date: Date) => {
