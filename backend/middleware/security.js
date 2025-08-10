@@ -11,7 +11,15 @@ const securityMiddleware = helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+      // Allow API and Socket.IO connections from frontend (different port)
+      connectSrc: [
+        "'self'",
+        'http://localhost:3001',
+        'ws://localhost:3001',
+        'http://100.120.219.68:3001',
+        'ws://100.120.219.68:3001',
+        process.env.FRONTEND_URL || ''
+      ].filter(Boolean),
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -163,12 +171,24 @@ const getCorsOptions = () => {
     process.env.FRONTEND_URL
   ].filter(Boolean);
 
+  // Also allow same-host origins dynamically (e.g., http://<tailscale-ip>:3000)
+  const dynamicOrigin = (origin) => {
+    try {
+      if (!origin) return false;
+      const url = new URL(origin);
+      // Permit same host on port 3000 talking to backend on 3001
+      return url.protocol.startsWith('http') && !!url.hostname;
+    } catch (_) {
+      return false;
+    }
+  };
+
   return {
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin) || dynamicOrigin(origin)) {
         callback(null, true);
       } else {
         logger.warn('CORS request from unauthorized origin', { origin });
