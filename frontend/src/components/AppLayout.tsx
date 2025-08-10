@@ -22,6 +22,7 @@ export const AppLayout = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [authReady, setAuthReady] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   // Auto-login hook
@@ -32,6 +33,7 @@ export const AppLayout = () => {
         const existingToken = localStorage.getItem('authToken');
         if (existingToken) {
           console.log('✅ Already authenticated with existing token');
+          setAuthReady(true);
           return;
         }
         
@@ -71,6 +73,8 @@ export const AppLayout = () => {
         }
       } catch (error) {
         console.error('❌ Auto-login failed:', error);
+      } finally {
+        setAuthReady(true);
       }
     };
     
@@ -189,6 +193,14 @@ export const AppLayout = () => {
         );
     }
   };
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
