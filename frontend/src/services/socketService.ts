@@ -9,7 +9,18 @@ class SocketService {
       return this.socket;
     }
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+    const socketUrl = (() => {
+      const envUrl = import.meta.env.VITE_SOCKET_URL as string | undefined;
+      if (envUrl && envUrl.trim().length > 0) return envUrl;
+      try {
+        const protocol = typeof window !== 'undefined' && window.location?.protocol ? window.location.protocol : 'http:';
+        const hostname = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
+        const port = '3001';
+        return `${protocol}//${hostname}:${port}`;
+      } catch (_) {
+        return 'http://localhost:3001';
+      }
+    })();
     
     this.socket = io(socketUrl, {
       transports: ['websocket', 'polling'],

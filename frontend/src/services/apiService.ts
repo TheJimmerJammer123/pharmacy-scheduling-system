@@ -91,7 +91,22 @@ class ApiService {
   private authToken: string | null = null;
 
   constructor() {
-    const baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const resolveBackendURL = () => {
+      const envUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+      if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
+        return envUrl;
+      }
+      try {
+        const protocol = typeof window !== 'undefined' && window.location?.protocol ? window.location.protocol : 'http:';
+        const hostname = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
+        const port = '3001';
+        return `${protocol}//${hostname}:${port}`;
+      } catch (_) {
+        return 'http://localhost:3001';
+      }
+    };
+
+    const baseURL = resolveBackendURL();
     
     this.api = axios.create({
       baseURL,

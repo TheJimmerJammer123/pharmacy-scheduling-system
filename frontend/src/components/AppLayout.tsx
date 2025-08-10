@@ -38,7 +38,18 @@ export const AppLayout = () => {
         console.log('🔐 Auto-login: Starting authentication...');
         
         // Login with admin credentials
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://100.120.219.68:3001';
+        const backendUrl = (() => {
+          const envUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+          if (envUrl && envUrl.trim().length > 0) return envUrl;
+          try {
+            const protocol = typeof window !== 'undefined' && window.location?.protocol ? window.location.protocol : 'http:';
+            const hostname = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
+            const port = '3001';
+            return `${protocol}//${hostname}:${port}`;
+          } catch (_) {
+            return 'http://100.120.219.68:3001';
+          }
+        })();
         const response = await fetch(`${backendUrl}/api/auth/login`, {
           method: 'POST',
           headers: {
