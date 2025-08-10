@@ -280,6 +280,12 @@ class ApiService {
     return response.data;
   }
 
+  // Document ingestion
+  async processExcelDocument(payload: { import_id?: string; file_name: string; file_type: 'excel' | 'xlsx' | 'xls'; content: string; }): Promise<any> {
+    const response: AxiosResponse<any> = await this.api.post('/api/documents/process-excel', payload);
+    return response.data;
+  }
+
   // Utility methods
   isAuthenticated(): boolean {
     return !!this.getAuthToken();

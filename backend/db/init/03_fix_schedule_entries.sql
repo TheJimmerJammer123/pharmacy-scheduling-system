@@ -25,6 +25,10 @@ CREATE INDEX IF NOT EXISTS idx_schedule_entries_store_number ON schedule_entries
 CREATE INDEX IF NOT EXISTS idx_schedule_entries_date ON schedule_entries(date);
 CREATE INDEX IF NOT EXISTS idx_schedule_entries_employee ON schedule_entries(employee_name);
 
+-- Ensure deduplication via unique index on natural key
+CREATE UNIQUE INDEX IF NOT EXISTS uq_schedule_entries_natural_key 
+ON schedule_entries(store_number, date, employee_name, shift_time);
+
 -- Add trigger for updated_at
 CREATE TRIGGER update_schedule_entries_updated_at 
     BEFORE UPDATE ON schedule_entries 

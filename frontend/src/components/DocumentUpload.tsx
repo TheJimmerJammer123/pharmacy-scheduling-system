@@ -9,8 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
-// Note: Document upload feature is not yet implemented in the new backend
-// This component provides a placeholder interface
+import apiService from '@/services/apiService'
+// Excel document upload integrated with backend ingestion endpoint
 
 interface DocumentImport {
   id: string
@@ -179,20 +179,15 @@ export function DocumentUpload() {
         // Determine file type
         const fileType = getFileType(fileItem.file.name)
         
-        // TODO: Implement document upload in the new backend
-        // For now, simulate upload completion
-        const response = { 
-          ok: true,
-          json: async () => ({ 
-            success: true, 
-            id: `upload-${Date.now()}`,
-            message: 'Document upload feature coming soon' 
-          })
-        }
-
-        const result = await response.json()
+        // Call backend API to process Excel
+        const result = await apiService.processExcelDocument({
+          import_id: `upload-${Date.now()}`,
+          file_name: fileItem.file.name,
+          file_type: fileType as any,
+          content: base64,
+        })
         
-        if (result.success) {
+        if (result?.success) {
           setFiles(prev => prev.map(f => 
             f.id === fileItem.id ? { 
               ...f, 
@@ -202,8 +197,10 @@ export function DocumentUpload() {
             } : f
           ))
           
-          // Start monitoring processing status
-          monitorProcessingStatus(fileItem.id, result.import_id)
+          // Mark as completed immediately; backend returns results synchronously
+          setFiles(prev => prev.map(f => 
+            f.id === fileItem.id ? { ...f, status: 'completed', progress: 100, importId: result.import_id } : f
+          ))
         } else {
           throw new Error(result.error)
         }
@@ -243,12 +240,12 @@ export function DocumentUpload() {
           ))
 
           if (data.status === 'completed') {
-            setUploadStats(prev => ({ ...prev, completedFiles: prev.completedFiles + 1 }))
-            toast({
-              title: "Processing Complete",
-              description: `Successfully processed file with ${data.metadata?.total_records || 0} records`,
-            })
-            fetchImports() // Refresh imports list
+                          setUploadStats(prev => ({ ...prev, completedFiles: prev.completedFiles + 1 }))
+              toast({
+                title: "Processing Complete",
+                description: `Inserted ${result?.results?.inserted ?? 0}, updated ${result?.results?.updated ?? 0}, deduped ${result?.results?.deduped ?? 0}`,
+              })
+              fetchImports() // Refresh imports list
           } else if (data.status === 'failed') {
             setUploadStats(prev => ({ ...prev, failedFiles: prev.failedFiles + 1 }))
             setFiles(prev => prev.map(f => 

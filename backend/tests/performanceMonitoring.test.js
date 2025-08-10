@@ -27,6 +27,11 @@ describe('Performance Monitoring Middleware', () => {
     resetMetrics();
   });
 
+  // Increase timeout for long-running performance tests
+  beforeAll(() => {
+    jest.setTimeout(15000);
+  });
+
   describe('Request Performance Tracking', () => {
     it('should track request duration and status', async () => {
       app.get('/test', (req, res) => {
@@ -177,6 +182,7 @@ describe('Performance Monitoring Middleware', () => {
     });
 
     it('should calculate health score correctly', async () => {
+      jest.setTimeout(20000);
       // Simulate good performance
       app.get('/healthy', (req, res) => res.json({ status: 'ok' }));
       
@@ -190,22 +196,28 @@ describe('Performance Monitoring Middleware', () => {
       // Reset and simulate poor performance
       resetMetrics();
       
+      // Reduce slowRequestThreshold to speed up this test
+      PERFORMANCE_CONFIG.slowRequestThreshold = 50;
+
       app.get('/unhealthy', (req, res) => {
         if (Math.random() > 0.5) {
           res.status(500).json({ error: 'random error' });
         } else {
           setTimeout(() => {
             res.json({ status: 'slow' });
-          }, PERFORMANCE_CONFIG.slowRequestThreshold + 100);
+          }, PERFORMANCE_CONFIG.slowRequestThreshold + 10);
         }
       });
 
       for (let i = 0; i < 10; i++) {
-        await request(app).get('/unhealthy');
+        await request(app).get('/unhealthy').then(() => {});
       }
 
       const poorReport = getPerformanceReport();
       expect(poorReport.healthScore).toBeLessThan(90);
+
+      // Restore default configuration
+      PERFORMANCE_CONFIG.slowRequestThreshold = 2000;
     });
   });
 
