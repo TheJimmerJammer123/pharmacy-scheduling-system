@@ -128,10 +128,11 @@ export const AppLayout = () => {
     }
   };
 
-  // Fetch unread count on mount and when refreshTrigger changes
+  // Fetch unread count after auth is ready
   useEffect(() => {
+    if (!authReady) return;
     fetchUnreadCount();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, authReady]);
 
   const navigation = [
     { id: "dashboard", name: "Dashboard", icon: Home, badge: null },
