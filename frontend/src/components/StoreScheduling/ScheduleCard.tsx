@@ -7,7 +7,7 @@ import { StoreSchedule } from "@/types/store";
 interface ScheduleCardProps {
   schedule: StoreSchedule;
   onEdit: (schedule: StoreSchedule) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 }
 
 export const ScheduleCard = memo(({ schedule, onEdit, onDelete }: ScheduleCardProps) => {

@@ -10,6 +10,14 @@ function toDateOnlyString(date: string) {
   return d.toISOString().slice(0, 10);
 }
 
+// Local date string helper (avoids timezone issues)
+function toLocalYMD(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const useStoreScheduling = (activeTab: string) => {
   const [schedules, setSchedules] = useState<StoreSchedule[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -48,10 +56,7 @@ export const useStoreScheduling = (activeTab: string) => {
   // Get schedules for a specific store and date (memoized)
   const getSchedulesForStoreAndDate = useCallback((storeNumber: number, date: Date) => {
     // Use local date string to avoid timezone issues
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
+    const dateString = toLocalYMD(date);
     
     return schedules.filter(schedule => {
       // Handle both ISO date strings and date-only strings
@@ -75,12 +80,22 @@ export const useStoreScheduling = (activeTab: string) => {
     }
   }, [handleError]);
 
-  // Fetch all store schedules
+  // Fetch store schedules for current month and selected store
   const fetchSchedules = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await apiService.getAllStoreSchedules();
-      console.log('Fetched schedules:', data?.length || 0);
+      // Month range for current calendar view
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+      const params: any = {
+        store_number: selectedStore,
+        date_from: toLocalYMD(monthStart),
+        date_to: toLocalYMD(monthEnd),
+      };
+
+      const data = await apiService.getAllStoreSchedules(params);
+      console.log('Fetched schedules (scoped):', data?.length || 0, params);
       if (data && data.length > 0) {
         console.log('Sample schedule:', data[0]);
       }
@@ -90,15 +105,11 @@ export const useStoreScheduling = (activeTab: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [handleError]);
+  }, [handleError, currentDate, selectedStore]);
 
   // Handle date selection
   const handleDateSelect = (date: Date) => {
-    // Use local date string to avoid timezone issues
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
+    const dateString = toLocalYMD(date);
     setSelectedDate(dateString);
     
     const storeSchedules = getSchedulesForStoreAndDate(selectedStore, date);
@@ -211,7 +222,7 @@ export const useStoreScheduling = (activeTab: string) => {
   };
 
   // Handle deleting a pharmacist schedule
-  const handleDeleteSchedule = async (scheduleId: number) => {
+  const handleDeleteSchedule = async (scheduleId: string) => {
     if (!confirm("Are you sure you want to delete this pharmacist schedule? This action cannot be undone.")) {
       return;
     }
@@ -267,12 +278,25 @@ export const useStoreScheduling = (activeTab: string) => {
     resetScheduleForm();
   };
 
+  // Initial data load: fetch stores
   useEffect(() => {
     if (activeTab === "store-scheduling") {
       fetchStores();
-      fetchSchedules();
     }
-  }, [activeTab, fetchStores, fetchSchedules]);
+  }, [activeTab, fetchStores]);
+
+  // Fetch schedules whenever tab is active AND selected store or month changes
+  useEffect(() => {
+    if (activeTab === "store-scheduling" && selectedStore) {
+      fetchSchedules();
+      // If a date is already selected, refresh the per-date list from new dataset
+      if (selectedDate) {
+        const [y, m, d] = selectedDate.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        setSchedulesForSelectedDate(getSchedulesForStoreAndDate(selectedStore, dateObj));
+      }
+    }
+  }, [activeTab, selectedStore, currentDate, fetchSchedules, selectedDate, getSchedulesForStoreAndDate]);
 
   return {
     // State

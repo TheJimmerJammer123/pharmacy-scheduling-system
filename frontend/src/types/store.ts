@@ -1,7 +1,7 @@
 // Branded types for better type safety
-export type StoreId = number & { readonly __brand: unique symbol };
+export type StoreId = string & { readonly __brand: unique symbol };
 export type StoreNumber = number & { readonly __brand: unique symbol };
-export type ScheduleId = number & { readonly __brand: unique symbol };
+export type ScheduleId = string & { readonly __brand: unique symbol };
 export type DateString = string & { readonly __brand: unique symbol };
 export type PhoneNumber = string & { readonly __brand: unique symbol };
 

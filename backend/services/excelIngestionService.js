@@ -37,26 +37,38 @@ class ExcelIngestionService {
     return undefined;
   }
 
+  // Improved Excel date normalization (handles Excel 1900 leap year bug and string inputs)
   normalizeDate(value) {
     if (!value) return undefined;
-    if (value instanceof Date) {
+
+    // If already a Date
+    if (value instanceof Date && !isNaN(value.getTime())) {
       return value.toISOString().slice(0, 10);
     }
+
     const str = String(value).trim();
-    // Try Excel serial date
+
+    // If it's an ISO-like date string or recognizable string
+    const asDate = new Date(str);
+    if (!isNaN(asDate.getTime())) {
+      return asDate.toISOString().slice(0, 10);
+    }
+
+    // Excel serial date (1900 date system)
     if (/^\d+$/.test(str)) {
-      try {
-        const serial = parseInt(str, 10);
-        const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-        const date = new Date(excelEpoch.getTime() + serial * 86400000);
+      const serial = parseInt(str, 10);
+      if (!isNaN(serial)) {
+        // Excel counts from 1 at 1900-01-01 and has a fake 1900-02-29 (leap year bug)
+        const excelEpoch = new Date(Date.UTC(1900, 0, 1)); // 1900-01-01
+        const date = new Date(excelEpoch.getTime() + (serial - 1) * 86400000);
+        // Adjust for the non-existent Feb 29, 1900 for serials > 59
+        if (serial > 59) {
+          date.setUTCDate(date.getUTCDate() - 1);
+        }
         return date.toISOString().slice(0, 10);
-      } catch (_) {}
+      }
     }
-    // Try YYYY-MM-DD or MM/DD/YYYY
-    const iso = new Date(str);
-    if (!isNaN(iso.getTime())) {
-      return iso.toISOString().slice(0, 10);
-    }
+
     return undefined;
   }
 

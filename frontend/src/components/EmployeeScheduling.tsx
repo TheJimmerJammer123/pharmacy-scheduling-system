@@ -14,7 +14,7 @@ interface EmployeeSchedulingProps {
 }
 
 interface EmployeeSchedule {
-  id: number;
+  id: string;
   store_number: number;
   store_name: string;
   store_address: string;
@@ -60,8 +60,11 @@ export const EmployeeScheduling = memo(({ activeTab, setActiveTab }: EmployeeSch
   const loadEmployees = async () => {
     setIsLoadingEmployees(true);
     try {
-      // Get all schedule entries and extract unique employee names
-      const schedules = await apiService.getAllStoreSchedules();
+      // Get all schedule entries and extract unique employee names (limit to recent month to avoid huge payloads)
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const schedules = await apiService.getAllStoreSchedules({ date_from: start, date_to: end, limit: 10000 });
       if (schedules) {
         // Extract unique employees from schedule entries
         const uniqueEmployees = Array.from(
@@ -107,7 +110,7 @@ export const EmployeeScheduling = memo(({ activeTab, setActiveTab }: EmployeeSch
 
       if (schedules) {
         const normalized = schedules.map((schedule: any) => ({
-          id: typeof schedule.id === 'string' ? parseInt(schedule.id, 10) : schedule.id,
+          id: String(schedule.id),
           store_number: schedule.store_number,
           store_name: `Store #${schedule.store_number}`,
           store_address: `Address for Store #${schedule.store_number}`,

@@ -19,7 +19,7 @@ interface GeneralNotesPanelProps {
   getCurrentStore: any;
   onAddSchedule: () => void;
   onEditSchedule: (schedule: any) => void;
-  onDeleteSchedule: (id: number) => void;
+  onDeleteSchedule: (id: string) => void;
   onStartGeneralNotesEditing: () => void;
   onSaveGeneralNotes: () => void;
   onCancelGeneralNotesEditing: () => void;
