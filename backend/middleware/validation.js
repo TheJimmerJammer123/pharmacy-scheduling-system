@@ -59,10 +59,33 @@ const validateEmail = (email) => {
   return emailRegex.test(email);
 };
 
-// Phone validation (basic)
+// Phone validation (E.164 international format for SMS)
 const validatePhone = (phone) => {
-  const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
-  return phoneRegex.test(phone);
+  // E.164 format: +[country code][national number]
+  // Must start with +, followed by 1-3 digit country code, then 4-14 digits
+  // Total length: 7-17 characters (including the +)
+  const e164Regex = /^\+[1-9]\d{1,14}$/;
+  
+  // Also accept US domestic format (10 digits) and auto-prefix with +1
+  const usFormatRegex = /^[1-9]\d{9}$/;
+  
+  if (!phone || typeof phone !== 'string') {
+    return false;
+  }
+  
+  const cleanPhone = phone.trim();
+  
+  // Check E.164 format first
+  if (e164Regex.test(cleanPhone)) {
+    return true;
+  }
+  
+  // Check US domestic format (will be auto-converted to +1 format)
+  if (usFormatRegex.test(cleanPhone)) {
+    return true;
+  }
+  
+  return false;
 };
 
 // Contact validation middleware

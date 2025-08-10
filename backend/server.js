@@ -408,14 +408,14 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// Error handling middleware (must be last)
-app.use('*', notFoundHandler);
-app.use(globalErrorHandler);
-
-// Handle CORS preflight quickly
+// Handle CORS preflight quickly (before error handlers)
 app.options('*', (req, res) => {
   res.status(204).send();
 });
+
+// Error handling middleware (must be last)
+app.use('*', notFoundHandler);
+app.use(globalErrorHandler);
 
 // Start performance monitoring
 monitorPerformance();

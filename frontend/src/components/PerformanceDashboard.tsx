@@ -76,7 +76,7 @@ const PerformanceDashboard: React.FC = () => {
     try {
       const response = await fetch('/api/performance/report', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
       

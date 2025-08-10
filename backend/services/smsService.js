@@ -25,23 +25,48 @@ class SMSService {
     return headers;
   }
 
+  normalizePhoneNumber(phone) {
+    if (!phone || typeof phone !== 'string') {
+      return phone;
+    }
+
+    const cleanPhone = phone.trim();
+    
+    // If already in E.164 format, return as is
+    if (/^\+[1-9]\d{1,14}$/.test(cleanPhone)) {
+      return cleanPhone;
+    }
+    
+    // If US domestic format (10 digits), add +1 prefix
+    if (/^[1-9]\d{9}$/.test(cleanPhone)) {
+      return `+1${cleanPhone}`;
+    }
+    
+    // Return as is if we can't normalize (validation should catch invalid formats)
+    return cleanPhone;
+  }
+
   async sendSMS(to, message, contactId = null) {
     try {
       if (!this.apiUrl) {
         throw new Error('SMS gateway not configured - missing CAPCOM6_API_URL');
       }
 
+      // Normalize phone number for SMS gateway
+      const normalizedTo = this.normalizePhoneNumber(to);
+
       // Capcom6 Android SMS Gateway payload
       const smsPayload = {
         textMessage: { text: message },
-        phoneNumbers: [to]
+        phoneNumbers: [normalizedTo]
       };
 
       const headers = this.getAuthHeaders();
       const capcomUrl = `${this.apiUrl.replace(/\/$/, '')}/message`;
 
       logger.info('Sending SMS via Capcom6', {
-        to,
+        originalTo: to,
+        normalizedTo,
         messageLength: message.length,
         contactId,
         hasBasic: !!(this.username && this.password),
@@ -55,7 +80,8 @@ class SMSService {
 
       const smsData = {
         id: (response.data && (response.data.id || response.data.messageId)) || Date.now().toString(),
-        to: to,
+        to: normalizedTo, // Use normalized number in response
+        originalTo: to, // Keep original for reference
         from: this.phoneNumber || 'capcom6-device',
         message: message,
         status: 'sent',

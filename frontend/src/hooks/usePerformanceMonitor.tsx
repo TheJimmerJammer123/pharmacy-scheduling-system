@@ -381,7 +381,7 @@ export const withPerformanceMonitoring = <P extends object>(
   Component: React.ComponentType<P>,
   componentName?: string
 ) => {
-  return React.forwardRef<any, P>((props, ref) => {
+  return (props: P) => {
     const { startRenderMeasurement, endRenderMeasurement } = usePerformanceMonitor(componentName);
 
     useEffect(() => {
@@ -392,8 +392,8 @@ export const withPerformanceMonitoring = <P extends object>(
       endRenderMeasurement();
     });
 
-    return <Component {...props} ref={ref} />;
-  });
+    return <Component {...props} />;
+  };
 };
 
 export default usePerformanceMonitor;
