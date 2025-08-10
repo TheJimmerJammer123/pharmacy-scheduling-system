@@ -39,3 +39,4 @@ curl -sS -X POST "$BASE_URL/api/send-sms" \
   -d "{\"to\":\"$PHONE_NUMBER\",\"message\":\"$MESSAGE\",\"contactId\":\"$CONTACT_ID\"}" | jq .
 
 
+

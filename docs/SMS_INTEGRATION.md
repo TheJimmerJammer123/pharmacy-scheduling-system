@@ -116,3 +116,4 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 - GitHub (Capcom6 Android SMS Gateway): https://github.com/capcom6/android-sms-gateway
 - API Specification: https://capcom6.github.io/android-sms-gateway/
 ```
+

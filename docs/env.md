@@ -35,3 +35,4 @@ Authoritative list of environment variables. See `env.example` for example value
 ## AI (OpenRouter)
 - OPENROUTER_API_KEY
 - (frontend) VITE_OPENROUTER_API_KEY
+
