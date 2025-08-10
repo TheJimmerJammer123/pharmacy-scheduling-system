@@ -214,17 +214,16 @@ export class SupabaseApiClient {
   static async sendSMS(contactId: string | number, message: string, requiresAcknowledgment?: boolean): Promise<ApiResponse<any>> {
     try {
       // Use the Edge Function to send SMS via Capcom6
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms-v3`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          contact_id: contactId.toString(),
-          message: message,
-          ai_generated: false,
-          requires_acknowledgment: requiresAcknowledgment || false
+          contactId: contactId.toString(),
+          message,
+          requiresAcknowledgment: requiresAcknowledgment || false
         })
       });
 
