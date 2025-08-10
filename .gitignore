@@ -61,6 +61,12 @@ coverage/
 # nyc test coverage
 .nyc_output
 
+# Test results and artifacts
+test-results/
+playwright-report/
+blob-report/
+test-artifacts/
+
 # Temporary folders
 tmp/
 temp/
