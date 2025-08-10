@@ -6,7 +6,10 @@ A comprehensive pharmacy scheduling and communication system designed for pharma
 
 This system enables pharmacist schedulers to:
 - **Manage Employee Schedules**: Import and view scheduling data from Excel files across all stores and employees
-- **SMS Communication**: Send, receive, and store SMS messages with employees using Capcom6 SMS Gateway
+- **SMS Communication**: Send, receive, and store SMS messages with employees using Capcom6 SMS Gateway:  (via Tailscale) ✅ OPERATIONAL
+  - Username: 
+  - Password: 
+  - Documentation:
 - **AI-Powered Assistance**: Chat with an intelligent AI bot that can query scheduling data and answer employee-related questions
 - **Smart Conversation Management**: Toggle between AI chatbot and direct human communication for individual employee conversations
 - **Multi-Store Support**: Access scheduling data for all pharmacy locations and employees
@@ -60,7 +63,7 @@ This project follows a service-oriented architecture with the following componen
 ## 📁 Project Structure
 
 ```
-pharm-project/
+pharmacy-scheduling-system/
 ├── .claude/                     # Claude Code configuration and subagents
 ├── data/                        # Organized data storage and processing
 │   ├── imports/                 # Original source files (Excel, CSV, PDF)
@@ -183,7 +186,7 @@ Once started, access these services:
 - **🌐 Frontend App**: [http://100.120.219.68:3000](http://100.120.219.68:3000) ✅ **OPERATIONAL**
 - **⚙️ n8n Workflow Automation**: [http://100.120.219.68:5678](http://100.120.219.68:5678) ✅ **OPERATIONAL**
   - Username: `admin`
-  - Password: `admin123`
+  - Password: set via N8N_BASIC_AUTH_PASSWORD in .env`admin123`
 
 ### **API Endpoints**
 - **REST API**: `http://100.120.219.68:8002/rest/v1/` ✅ **OPERATIONAL**
@@ -198,9 +201,12 @@ Once started, access these services:
 - **Connection Pooler**: Disabled (not needed at current scale)
 
 ### **External Services**
-- **📱 Capcom6 SMS Gateway**: `100.126.232.47:8080` (via Tailscale) ✅ **OPERATIONAL**
+- **📱 Capcom6 SMS Gateway:  (via Tailscale) ✅ OPERATIONAL
+  - Username: 
+  - Password: 
+  - Documentation:
   - Username: `sms`
-  - Password: `ciSEJNmY`
+  - Password: set via N8N_BASIC_AUTH_PASSWORD in .env`ciSEJNmY`
   - **Documentation**: 
     - [Official Repository](https://github.com/capcom6/android-sms-gateway)
     - [API Specification](https://capcom6.github.io/android-sms-gateway/)
@@ -310,7 +316,10 @@ MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
 # EXTERNAL SERVICES
 # =============================================================================
 
-# Capcom6 SMS Gateway
+# Capcom6 SMS Gateway:  (via Tailscale) ✅ OPERATIONAL
+  - Username: 
+  - Password: 
+  - Documentation:
 CAPCOM6_PASSWORD=your_capcom6_password
 
 # OpenRouter AI API

@@ -54,11 +54,11 @@
 ### API Keys
 ```bash
 # Primary Authentication
-ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoYXJtLXNjaGVkdWxpbmciLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc1NDMxNjQyOSwiZXhwIjoxNzg1ODUyNDI5fQ.rFYSJjoH9jLAT-ifkQIprH5ORmpFQKkA27dohsf15NA"
+ANON_KEY=""
 
-SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoYXJtLXNjaGVkdWxpbmciLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNzU0MzE2NDI5LCJleHAiOjE3ODU4NTI0Mjl9.QuEJ2vEIO1AETW9j8QVSGgOqD1tVO270syautP7qs6M"
+SERVICE_ROLE_KEY=""
 
-JWT_SECRET="fMvZdFHAkEW6HoWkKfj8IukvHEcn53344UcCMgLyD3o="
+JWT_SECRET=""
 ```
 
 ### Authentication Methods
@@ -101,8 +101,8 @@ n8n:          http://100.120.219.68:5678
 ### External Services
 ```bash
 OpenRouter API:    https://openrouter.ai/api/v1/chat/completions
-Capcom6 Password:  ciSEJNmY
-OpenRouter Key:    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
+Capcom6 Password:  
+OpenRouter Key:    
 ```
 
 ---
@@ -519,15 +519,15 @@ Content-Type: application/json
 #### Connection Details
 ```bash
 Gateway URL:    http://100.126.232.47:8080
-Username:       sms
-Password:       ciSEJNmY
+Username:       
+Password:       
 API Endpoint:   /messages
 ```
 
 #### Send SMS via Capcom6
 ```bash
 POST http://100.126.232.47:8080/messages
-Authorization: Basic c21zOmNpU0VKTm1Z
+Authorization: Basic <base64(:)>
 Content-Type: application/json
 
 {
@@ -572,7 +572,7 @@ Content-Type: application/json
 ```bash
 Base URL:    https://openrouter.ai/api/v1/chat/completions
 Model:       qwen/qwen3-coder:free
-API Key:     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
+API Key:     
 ```
 
 #### AI System Capabilities
@@ -1090,7 +1090,7 @@ curl -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
 ping 100.126.232.47
 
 # Test direct Capcom6 API
-curl -u sms:ciSEJNmY -X POST -H "Content-Type: application/json" \
+curl -u : -X POST -H "Content-Type: application/json" \
      -d '{"message":"Test","phoneNumbers":["+1234567890"],"sim":1}' \
      http://100.126.232.47:8080/messages
 ```
