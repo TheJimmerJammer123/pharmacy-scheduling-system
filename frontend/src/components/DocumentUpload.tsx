@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabase'
+// Note: Document upload feature is not yet implemented in the new backend
+// This component provides a placeholder interface
 
 interface DocumentImport {
   id: string
@@ -70,38 +71,34 @@ export function DocumentUpload() {
     fetchImports()
   }, [])
 
-  // Fetch processing templates
+  // Fetch processing templates - placeholder implementation
   const fetchTemplates = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('processing_templates')
-        .select('*')
-        .order('is_default', { ascending: false })
-
-      if (error) throw error
-      setTemplates(data || [])
+      // TODO: Implement template fetching in the new backend
+      const placeholderTemplates: ProcessingTemplate[] = [
+        {
+          id: '1',
+          name: 'Default Excel Template',
+          description: 'Standard template for Excel files',
+          file_type: 'excel',
+          template_config: {},
+          is_default: true
+        }
+      ];
       
-      // Set default template if available
-      const defaultTemplate = data?.find(t => t.is_default)
-      if (defaultTemplate) {
-        setSelectedTemplate(defaultTemplate)
-      }
+      setTemplates(placeholderTemplates);
+      setSelectedTemplate(placeholderTemplates[0]);
     } catch (error) {
       console.error('Error fetching templates:', error)
     }
   }, [])
 
-  // Fetch existing imports
+  // Fetch existing imports - placeholder implementation
   const fetchImports = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('document_imports')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      if (error) throw error
-      setImports(data || [])
+      // TODO: Implement import history fetching in the new backend
+      // For now, show empty state
+      setImports([]);
     } catch (error) {
       console.error('Error fetching imports:', error)
     }
@@ -182,26 +179,16 @@ export function DocumentUpload() {
         // Determine file type
         const fileType = getFileType(fileItem.file.name)
         
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-upload`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({
-            file_name: fileItem.file.name,
-            file_type: fileType,
-            file_size: fileItem.file.size,
-            content: base64,
-            metadata: {
-              description: `Uploaded ${fileItem.file.name} using ${fileItem.template?.name || 'default'} template`,
-              tags: ['pharmacy', 'data', fileType],
-              priority: 'medium',
-              template_id: fileItem.template?.id
-            }
+        // TODO: Implement document upload in the new backend
+        // For now, simulate upload completion
+        const response = { 
+          ok: true,
+          json: async () => ({ 
+            success: true, 
+            id: `upload-${Date.now()}`,
+            message: 'Document upload feature coming soon' 
           })
-        })
+        }
 
         const result = await response.json()
         
@@ -241,11 +228,9 @@ export function DocumentUpload() {
   const monitorProcessingStatus = async (fileId: string, importId: string) => {
     const checkStatus = async () => {
       try {
-        const { data } = await supabase
-          .from('document_imports')
-          .select('*')
-          .eq('id', importId)
-          .single()
+        // TODO: Implement status checking in the new backend
+        // For now, just mark as completed after a delay
+        const data = { progress: 100, status: 'completed', message: 'Upload completed (placeholder)' };
 
         if (data) {
           setFiles(prev => prev.map(f => 

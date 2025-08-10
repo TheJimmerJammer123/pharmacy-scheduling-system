@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiClient, Contact, Message } from "@/lib/supabase-api";
+import { apiService, Contact, Message } from "@/services/apiService";
 import { useToast } from "@/hooks/use-toast";
 
 interface DashboardProps {
@@ -50,20 +50,44 @@ export const Dashboard = memo(({ activeTab, setActiveTab, refreshTrigger }: Dash
     const fetchData = async () => {
       try {
         setIsLoading(true);
-      const [contactsResponse, messagesResponse, statsResponse] = await Promise.all([
-          ApiClient.getContacts(),
-        ApiClient.getMessages(),
-        ApiClient.getDashboardStats()
+        const [contactsData, messagesData] = await Promise.all([
+          apiService.getContacts(),
+          apiService.getMessages()
         ]);
 
-        if (contactsResponse.success && messagesResponse.success) {
-          setContacts(contactsResponse.data || []);
-          setMessages(messagesResponse.data || []);
+        if (contactsData && messagesData) {
+          setContacts(contactsData);
+          setMessages(messagesData);
+          
+          // Calculate dashboard stats locally since backend doesn't provide them yet
+          const today = new Date().toDateString();
+          const todayMessages = messagesData.filter(msg => {
+            const msgDate = new Date(msg.created_at || new Date());
+            return msgDate.toDateString() === today;
+          });
+          
+          const calculatedStats: DashboardStats = {
+            contacts: {
+              total: contactsData.length,
+              active: contactsData.filter(c => c.status === 'active').length,
+              high_priority: 0
+            },
+            messages: {
+              total: messagesData.length,
+              today: todayMessages.length,
+              pending: messagesData.filter(m => m.status === 'pending').length,
+              ai_generated: messagesData.filter(m => m.ai_generated === true).length
+            },
+            appointments: {
+              total: 0,
+              today: 0,
+              pending: 0,
+              confirmed: 0
+            }
+          };
+          
+          setDashboardStats(calculatedStats);
         }
-
-      if (statsResponse.success) {
-        setDashboardStats(statsResponse.data);
-      }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -153,7 +177,7 @@ export const Dashboard = memo(({ activeTab, setActiveTab, refreshTrigger }: Dash
       const contact = contacts.find(c => c.id === msg.contact_id);
       const timeAgo = getTimeAgo(new Date(msg.created_at || new Date()));
       return {
-        id: msg.id!,
+        id: msg.id,
         contact: contact?.name || 'Unknown Contact',
         message: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : ''),
         time: timeAgo,

@@ -1,6 +1,6 @@
 ---
 name: pharmacy-frontend-developer
-description: Specialized frontend developer for pharmacy scheduling system with React, TypeScript, Tailwind CSS, and Supabase integration
+description: Specialized frontend developer for pharmacy scheduling system with React, TypeScript, Tailwind CSS, and backend API integration
 version: 1.0.0
 author: Pharmacy Project Team
 created: 2025-08-05
@@ -25,12 +25,12 @@ tools:
   - Restart: `docker compose restart frontend`
 - Use Tailscale IPs for cross-device testing:
   - Server: 100.120.219.68
-  - API: http://100.120.219.68:8002
+  - API: http://100.120.219.68:3001
   - Frontend: http://100.120.219.68:3000
   - Capcom6: http://100.126.232.47:8080
 - Volumes policy: use named volumes for state; bind mounts only for dev HMR.
 - Role-specific:
-  - Prefer `VITE_SUPABASE_URL=http://100.120.219.68:8002` for cross-device tests.
+  - Prefer `VITE_BACKEND_URL=http://100.120.219.68:3001` and `VITE_SOCKET_URL=http://100.120.219.68:3001` for cross-device tests.
   - Do NOT reference SERVICE_ROLE_KEY in client. Before sharing a build: `grep -R "SERVICE_ROLE_KEY" -n [frontend/dist](frontend/dist:1) || true`
 - See: [docker-compose.yml](docker-compose.yml:1), [CLAUDE.md](CLAUDE.md:1)
 
@@ -99,11 +99,10 @@ docker compose logs frontend --follow
 - **Accessibility**: Implement ARIA attributes and keyboard navigation
 - **Responsive Design**: Mobile-first approach with Tailwind responsive utilities
 
-### 2. Supabase Integration
-- **Real-time Updates**: Use Supabase subscriptions for live data updates
-- **Authentication**: Implement proper auth state management
-- **Row Level Security**: Respect RLS policies in client-side filtering
-- **Error Handling**: Graceful handling of database errors and connection issues
+### 2. Backend Integration
+- **Real-time Updates**: Use Socket.IO for live updates
+- **Authentication**: Implement JWT auth flow against backend
+- **Error Handling**: Graceful handling of API errors and connection issues
 
 ### 3. Pharmacy-Specific Patterns
 - **Employee Privacy**: Never log or expose sensitive employee information
@@ -120,35 +119,33 @@ docker compose logs frontend --follow
 
 ## Available Tools & APIs
 
-### Supabase Tables
-- `stores` - Pharmacy locations and information
-- `contacts` - Employee contact information and profiles
-- `store_schedules` - Employee scheduling data and shift assignments  
-- `messages` - SMS conversation history
-- `appointments` - Appointment management
-- `document_imports` - File upload tracking
-- `import_history` - Import processing results
+### Backend API Endpoints
+- `/api/stores` - Pharmacy locations and information
+- `/api/contacts` - Employee contact information and profiles
+- `/api/schedule-entries` - Scheduling data and shift assignments
+- `/api/messages` - SMS conversation history
+- `/api/appointments` - Appointment management
 
 ### API Endpoints
-```typescript
-// Stores API
-GET /rest/v1/stores - List all pharmacy locations
-GET /rest/v1/stores?id=eq.{id} - Get specific store
+```http
+# Stores
+GET /api/stores
 
-// Contacts API  
-GET /rest/v1/contacts - List all employee contacts
-GET /rest/v1/contacts?status=eq.active - Filter active employees
-POST /rest/v1/contacts - Create new employee contact
+# Contacts
+GET /api/contacts
+POST /api/contacts
 
-// Messages API
-GET /rest/v1/messages - List SMS conversations
-GET /rest/v1/messages?contact_id=eq.{id} - Get messages for specific employee
-POST /rest/v1/messages - Send new message
+# Messages
+GET /api/messages
+GET /api/messages/:contactId
+POST /api/send-sms
 
-// Schedules API
-GET /rest/v1/store_schedules - List all schedules
-GET /rest/v1/store_schedules?store_id=eq.{id} - Get schedules for specific store
-POST /rest/v1/store_schedules - Create schedule entry
+# Schedule Entries
+GET /api/schedule-entries
+POST /api/schedule-entries
+
+# Health
+GET /api/health
 ```
 
 ### External Integrations

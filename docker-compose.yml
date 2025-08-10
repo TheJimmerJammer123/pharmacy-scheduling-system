@@ -1,22 +1,16 @@
-# Pharmacy Scheduling System - Optimized Docker Compose
+# Pharmacy Scheduling System - Simplified Docker Compose
 # 
 # CORE SERVICES (All Required):
 #   frontend    - React development server with hot reload (port 3000)
-#   kong        - API Gateway (port 8002) - routes all external requests
+#   backend     - Express + Socket.IO backend for SMS and realtime (port 3001)
 #   db          - PostgreSQL database with pharmacy schema
-#   auth        - GoTrue authentication service (JWT tokens)
-#   rest        - PostgREST API server (auto-generated from database)
-#   functions   - Supabase Edge Functions (SMS, AI, document processing)
 #   n8n         - Workflow automation platform (port 5678)
 #
-# DISABLED SERVICES:
-#   supavisor   - Connection pooler (causes restart issues, not needed at current scale)
-#
-# MISSING SERVICES (Now Added):
-#   storage     - File storage service (needed for document uploads)
-#   realtime    - WebSocket subscriptions (needed for live messaging)
-#   analytics   - Logflare analytics (not needed for internal system)
-#   studio      - Supabase Studio dashboard (not needed in production)
+# ARCHITECTURE:
+#   - Backend handles SMS via Capcom6 API and realtime updates via Socket.IO
+#   - Frontend connects directly to backend for SMS operations
+#   - Backend connects directly to PostgreSQL for database operations
+#   - No Supabase dependencies - pure Node.js + PostgreSQL stack
 #
 # Usage:
 #   Start:              docker compose up -d
@@ -54,20 +48,13 @@ services:
       # Exclude node_modules to avoid conflicts
       - /app/node_modules
     environment:
-      # Core Supabase Configuration
-      - VITE_SUPABASE_URL=http://100.120.219.68:8002
-      - VITE_SUPABASE_ANON_KEY=${ANON_KEY}
-      - VITE_SUPABASE_SERVICE_KEY=${SERVICE_ROLE_KEY}
+      # Backend Configuration
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL}
+      - VITE_SOCKET_URL=${VITE_SOCKET_URL}
       
       # App Configuration
       - VITE_APP_NAME=Pharmacy Scheduling System
       - VITE_APP_VERSION=1.0.0
-      
-      # SMS Gateway Configuration  
-      - VITE_CAPCOM6_API_URL=http://100.126.232.47:8080/message
-      - VITE_CAPCOM6_USERNAME=sms
-      - VITE_CAPCOM6_PASSWORD=${CAPCOM6_PASSWORD}
-      - VITE_WEBHOOK_BASE_URL=http://100.120.219.68:8002
       
       # AI Configuration
       - VITE_OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
@@ -82,278 +69,77 @@ services:
       timeout: 10s
       retries: 3
     depends_on:
-      kong:
+      backend:
         condition: service_healthy
 
-  # API Gateway - Simplified Kong configuration
-  kong:
-    container_name: supabase-kong
-    image: kong:2.8.1
+  # Backend Service - Express + Socket.IO for SMS and realtime
+  backend:
+    container_name: pharm-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "8002:8000/tcp"
-      - "8443:8443/tcp"
-    volumes:
-      - ./supabase/volumes/api/kong.yml:/home/kong/temp.yml:ro,z
-    depends_on:
-      - rest
-      - auth
-      - functions
-      - realtime
-      - storage
+      - "3001:3001"
     environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
-      KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
-      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
-
-  # Authentication Service
-  auth:
-    container_name: supabase-auth
-    image: supabase/gotrue:v2.177.0
-    restart: unless-stopped
+      # Server Configuration
+      - BACKEND_PORT=3001
+      - NODE_ENV=production
+      - FRONTEND_URL=${FRONTEND_URL}
+      
+      # Database Configuration
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=pharmacy
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      
+      # SMS Gateway Configuration
+      - CAPCOM6_API_URL=${CAPCOM6_API_URL}
+      - CAPCOM6_API_KEY=${CAPCOM6_API_KEY}
+      - CAPCOM6_ACCOUNT_ID=${CAPCOM6_ACCOUNT_ID}
+      - CAPCOM6_PHONE_NUMBER=${CAPCOM6_PHONE_NUMBER}
+      - CAPCOM6_USERNAME=${CAPCOM6_USERNAME}
+      - CAPCOM6_PASSWORD=${CAPCOM6_PASSWORD}
+      
+      # JWT Configuration
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRY=${JWT_EXPIRY}
+    volumes:
+      # Database initialization scripts
+      - ./backend/db/init:/app/db/init:ro
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
-      timeout: 5s
-      interval: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
       retries: 3
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      GOTRUE_API_HOST: 0.0.0.0
-      GOTRUE_API_PORT: 9999
-      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
 
-      GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-
-      GOTRUE_SITE_URL: ${SITE_URL}
-      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
-      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP}
-
-      GOTRUE_JWT_ADMIN_ROLES: service_role
-      GOTRUE_JWT_AUD: authenticated
-      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-      GOTRUE_JWT_EXP: ${JWT_EXPIRY}
-      GOTRUE_JWT_SECRET: ${JWT_SECRET}
-
-      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
-      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS}
-      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
-
-      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
-      GOTRUE_SMTP_HOST: ${SMTP_HOST}
-      GOTRUE_SMTP_PORT: ${SMTP_PORT}
-      GOTRUE_SMTP_USER: ${SMTP_USER}
-      GOTRUE_SMTP_PASS: ${SMTP_PASS}
-      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME}
-      GOTRUE_MAILER_URLPATHS_INVITE: ${MAILER_URLPATHS_INVITE}
-      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${MAILER_URLPATHS_CONFIRMATION}
-      GOTRUE_MAILER_URLPATHS_RECOVERY: ${MAILER_URLPATHS_RECOVERY}
-      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE}
-
-      GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP}
-      GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
-
-  # REST API Service
-  rest:
-    container_name: supabase-rest
-    image: postgrest/postgrest:v12.2.12
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_JWT_SECRET: ${JWT_SECRET}
-      PGRST_DB_USE_LEGACY_GUCS: "false"
-      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
-      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
-    command: ["postgrest"]
-
-  # Edge Functions Service
-  functions:
-    container_name: supabase-edge-functions
-    image: supabase/edge-runtime:v1.67.4
-    restart: unless-stopped
-    volumes:
-      - ./supabase/volumes/functions:/home/deno/functions:Z
-    depends_on:
-      - db
-    environment:
-      JWT_SECRET: ${JWT_SECRET}
-      SUPABASE_URL: http://kong:8000
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
-      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      # Capcom6 SMS Gateway Configuration
-      CAPCOM6_URL: http://100.126.232.47:8080
-      CAPCOM6_USERNAME: sms
-      CAPCOM6_PASSWORD: ${CAPCOM6_PASSWORD}
-      # OpenRouter AI Configuration
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
-    command: ["start", "--main-service", "/home/deno/functions/main"]
-
-  # PostgreSQL Database
+  # PostgreSQL Database - Pure PostgreSQL, no Supabase
   db:
-    container_name: supabase-db
-    image: supabase/postgres:15.8.1.060
+    container_name: pharm-db
+    image: postgres:15-alpine
     restart: unless-stopped
+    ports:
+      - "5432:5432"
     volumes:
-      - ./supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
-      - ./supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
-      - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
-      - ./supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
-      # Pharmacy application schema and data
-      - ./supabase/volumes/db/init/001_pharmacy_schema.sql:/docker-entrypoint-initdb.d/migrations/01-pharmacy_schema.sql:Z
-      - ./supabase/volumes/db/init/002_document_imports.sql:/docker-entrypoint-initdb.d/migrations/02-document_imports.sql:Z
-      # PGDATA directory is persisted between restarts (commented out to fix corruption)
-      # - ./volumes/db/data:/var/lib/postgresql/data:Z
-      # Changes required for internal supabase data
-      - ./supabase/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
-      - ./supabase/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/98-pooler.sql:Z
-      # Use named volume to persist pgsodium decryption key between restarts
-      - db-config:/etc/postgresql-custom
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      # Database data persistence
+      - postgres_data:/var/lib/postgresql/data
+      # Initialization scripts
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
     environment:
-      POSTGRES_HOST: /var/run/postgresql
-      PGPORT: ${POSTGRES_PORT}
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: pharmacy
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: ${POSTGRES_DB}
-      POSTGRES_DB: ${POSTGRES_DB}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXP: ${JWT_EXPIRY}
-    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "log_min_messages=fatal"]
-
-  # Connection Pooler - DISABLED (causing restart issues, not needed at current scale)
-  # supavisor:
-  #   container_name: supabase-pooler
-  #   image: supabase/supavisor:2.5.7
-  #   restart: unless-stopped
-  #   ports:
-  #     - "${POSTGRES_PORT}:5432"
-  #     - "${POOLER_PROXY_PORT_TRANSACTION}:6543"
-  #   volumes:
-  #     - ./supabase/volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro,z
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-sSfL", "--head", "-o", "/dev/null", "http://127.0.0.1:4000/api/health"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   environment:
-  #     PORT: 4000
-  #     POSTGRES_PORT: ${POSTGRES_PORT}
-  #     POSTGRES_DB: ${POSTGRES_DB}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  #     DATABASE_URL: ecto://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/_supabase
-  #     CLUSTER_POSTGRES: true
-  #     SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-  #     VAULT_ENC_KEY: ${VAULT_ENC_KEY}
-  #     API_JWT_SECRET: ${JWT_SECRET}
-  #     METRICS_JWT_SECRET: ${JWT_SECRET}
-  #     REGION: local
-  #     ERL_AFLAGS: -proto_dist inet_tcp
-  #     POOLER_TENANT_ID: ${POOLER_TENANT_ID}
-  #     POOLER_DEFAULT_POOL_SIZE: ${POOLER_DEFAULT_POOL_SIZE}
-  #     POOLER_MAX_CLIENT_CONN: ${POOLER_MAX_CLIENT_CONN}
-  #     POOLER_POOL_MODE: transaction
-  #     DB_POOL_SIZE: ${POOLER_DB_POOL_SIZE}
-  #   command: ["/bin/sh", "-c", "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"]
-
-  # Realtime Service - WebSocket subscriptions for live updates
-  realtime:
-    container_name: supabase-realtime
-    image: supabase/realtime:v2.30.34
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      # Database Configuration
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: postgres
-      DB_USER: supabase_admin
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-      
-      # Core Realtime Configuration
-      PORT: 4000
-      API_JWT_SECRET: ${JWT_SECRET}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      
-      # Self-hosted Configuration
-      APP_NAME: "realtime"
-      REGION: "local"
-      SEED_SELF_HOST: "false"
-      SELF_HOST_TENANT_NAME: "realtime-dev"
-      
-      # Network and Performance
-      ERL_AFLAGS: "-proto_dist inet_tcp"
-      DNS_NODES: "''"
-      RLIMIT_NOFILE: "10000"
-      
-      # Optional Features
-      RUN_JANITOR: "true"
-      ENABLE_TAILSCALE: "false"
-    command: ["/bin/sh", "-c", "ulimit -Sn 10000 && sudo -E -u nobody /app/bin/migrate && sudo -E -u nobody /app/bin/server"]
-    # healthcheck:
-    #   test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 3
-
-  # Storage Service - File storage for document uploads
-  storage:
-    container_name: supabase-storage
-    image: supabase/storage-api:v0.40.4
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      ANON_KEY: ${ANON_KEY}
-      SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      PROJECT_REF: ${PROJECT_REF}
-      POSTGREST_URL: http://rest:3000
-      PGRST_JWT_SECRET: ${JWT_SECRET}
-      DATABASE_URL: postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
-      PGOPTIONS: "-c search_path=storage,public"
-      FILE_SIZE_LIMIT: 52428800
-      STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      TENANT_ID: ${TENANT_ID}
-      REGION: local
-      GLOBAL_S3_BUCKET: ${PROJECT_REF}
-      ENABLE_IMAGE_TRANSFORMATION: "true"
-      IMAGE_TRANSFORMATION_SIZE_LIMIT: 20971520
-    volumes:
-      - storage_data:/var/lib/storage
-    # healthcheck:
-    #   test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 3
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pharmacy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: ["postgres", "-c", "log_statement=all", "-c", "log_min_messages=info"]
 
   # n8n workflow automation platform
   n8n:
@@ -377,7 +163,7 @@ services:
       DB_TYPE: "postgresdb"
       DB_POSTGRESDB_HOST: "db"
       DB_POSTGRESDB_PORT: 5432
-      DB_POSTGRESDB_DATABASE: "${POSTGRES_DB}"
+      DB_POSTGRESDB_DATABASE: "pharmacy"
       DB_POSTGRESDB_USER: "postgres"
       DB_POSTGRESDB_PASSWORD: "${POSTGRES_PASSWORD}"
       DB_POSTGRESDB_SCHEMA: "n8n"
@@ -409,8 +195,6 @@ services:
       timeout: 10s
       retries: 3
 
-
 volumes:
-  db-config:
+  postgres_data:
   n8n_data:
-  storage_data:

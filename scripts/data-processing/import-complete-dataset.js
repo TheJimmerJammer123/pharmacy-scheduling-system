@@ -12,7 +12,7 @@ const BATCH_SIZE = 1000;
 const runSQL = (sql, description) => {
   console.log(`\nProcessing: ${description}...`);
   try {
-    const result = execSync(`docker exec supabase-db psql -U postgres -d postgres -c "${sql.replace(/"/g, '\\"')}"`, 
+    const result = execSync(`docker exec pharm-db psql -U postgres -d pharmacy -c "${sql.replace(/"/g, '\\"')}"`, 
       { encoding: 'utf8', maxBuffer: 1024 * 1024 * 10 });
     console.log(`Completed: ${description}`);
     return result;

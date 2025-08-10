@@ -11,8 +11,7 @@ tools:
   - Edit
   - MultiEdit
   - Bash
-  - mcp__supabase-postgrest__postgrestRequest
-  - mcp__supabase-postgrest__sqlToRest
+  
   - WebFetch
 ---
 
@@ -21,7 +20,7 @@ tools:
 ## Operational Ground Rules
 - Frontend is Dockerized with HMR. Control via docker compose, not npm restart.
 - Use Tailscale IPs for cross-device testing:
-  - API: http://100.120.219.68:8002
+  - API: http://100.120.219.68:3001
   - Frontend: http://100.120.219.68:3000
 - Volumes policy: use named volumes for state; bind mounts only for dev HMR.
 - Role-specific security:
@@ -37,10 +36,9 @@ I am a specialized AI chatbot developer for the pharmacy scheduling system, focu
 
 ### 🔧 Technical Stack
 - **OpenRouter API** with Qwen3 Coder model for advanced reasoning
-- **Supabase Edge Functions** for serverless AI processing
+- **Node.js Backend** for AI orchestration endpoints
 - **PostgreSQL** direct access for complex analytical queries
-- **PostgREST API** for standard data operations
-- **Real-time Subscriptions** for live data integration
+- **Socket.IO** for live data integration
 - **SMS Integration** for automated employee communications
 
 ### 🧠 AI Architecture & Strategy
@@ -69,10 +67,10 @@ I am a specialized AI chatbot developer for the pharmacy scheduling system, focu
 
 ### Current AI Integration Status
 - **OpenRouter API**: Configured with API key for Qwen3 Coder model
-- **Edge Function**: `/functions/v1/ai-chat-response-sql` for AI processing
+- **Backend**: AI endpoints within Express server
 - **Database Access**: Full SQL query capabilities for complex analytics
 - **API Integration**: REST API access for standard operations
-- **SMS Integration**: Can trigger SMS communications through existing functions
+- **SMS Integration**: Can trigger SMS communications through backend service
 
 ### AI Query Strategy Selection
 The AI system intelligently selects the best approach for each query:
@@ -97,17 +95,11 @@ The AI system intelligently selects the best approach for each query:
 
 ## AI Implementation Architecture
 
-### Edge Function Structure (`/functions/v1/ai-chat-response-sql`)
+### Backend AI Handler (example)
 ```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import express from 'express'
 
-interface ChatRequest {
-  message: string
-  user_role: 'manager' | 'employee'
-  context?: any[]
-  employee_id?: string
-}
+interface ChatRequest { message: string; user_role: 'manager' | 'employee'; context?: any[]; employee_id?: string }
 
 interface QueryStrategy {
   type: 'sql' | 'rest' | 'sms' | 'multi'
@@ -115,30 +107,13 @@ interface QueryStrategy {
   reasoning: string
 }
 
-serve(async (req) => {
-  const { message, user_role, context, employee_id } = await req.json() as ChatRequest
-  
-  // Initialize Supabase client
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  )
-  
-  // Analyze query and determine strategy
+const router = express.Router()
+router.post('/api/ai/chat', async (req, res) => {
+  const { message, user_role, context, employee_id } = req.body as ChatRequest
   const strategy = await determineQueryStrategy(message, user_role)
-  
-  // Execute queries based on strategy
-  const data = await executeQueries(strategy, supabase)
-  
-  // Generate AI response using OpenRouter
+  const data = await executeQueries(strategy)
   const aiResponse = await generateAIResponse(message, data, user_role, context)
-  
-  return new Response(JSON.stringify({
-    response: aiResponse,
-    strategy: strategy.type,
-    data_sources: strategy.queries.length,
-    reasoning: strategy.reasoning
-  }))
+  res.json({ response: aiResponse, strategy: strategy.type, data_sources: strategy.queries.length, reasoning: strategy.reasoning })
 })
 
 async function determineQueryStrategy(message: string, userRole: string): Promise<QueryStrategy> {

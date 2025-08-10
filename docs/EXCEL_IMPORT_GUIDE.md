@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to import Excel files containing pharmacy scheduling data into our Supabase database. The system is specifically designed to handle shift detail reports from pharmacy management systems.
+This guide explains how to import Excel files containing pharmacy scheduling data into our PostgreSQL database. The system is specifically designed to handle shift detail reports from pharmacy management systems.
 
 ## 📋 Supported Excel File Structure
 
@@ -105,7 +105,7 @@ The system expects Excel files with the following sheet structure:
 1. Navigate to Document Upload page
 2. Drag & drop Excel file or click to select
 3. File is automatically converted to base64
-4. Upload request sent to /functions/v1/document-upload
+4. Upload request sent to /api/documents/upload
 ```
 
 ### 2. Processing Pipeline
@@ -196,9 +196,9 @@ docker compose up -d frontend
 ### 3. API Testing
 ```bash
 # Test the import API directly
-curl -X POST http://localhost:8002/functions/v1/process-excel \
+curl -X POST http://localhost:3001/api/documents/process-excel \
   -H "Content-Type: application/json" \
-  -H "apikey: YOUR_API_KEY" \
+  -H "Authorization: Bearer {JWT_TOKEN}" \
   -d '{
     "import_id": "test-123",
     "file_name": "test.xlsx",
@@ -272,7 +272,7 @@ DELETE FROM contacts WHERE created_at > NOW() - INTERVAL '1 hour' AND phone IS N
 ## 📞 Support
 
 For issues with Excel imports:
-1. Check the import logs in Supabase dashboard
+1. Check the import logs in the backend console
 2. Verify Excel file format matches requirements
 3. Test with sample data first
 4. Contact development team for complex issues

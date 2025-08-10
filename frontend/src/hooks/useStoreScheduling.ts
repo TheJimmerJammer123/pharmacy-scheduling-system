@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ApiClient } from "@/lib/supabase-api";
+import apiService from "@/services/apiService";
 import { validateStoreSchedule } from "@/lib/validation";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { Store, StoreSchedule, ScheduleFormData } from "@/types/store";
@@ -65,14 +65,10 @@ export const useStoreScheduling = (activeTab: string) => {
   // Fetch all stores
   const fetchStores = useCallback(async () => {
     try {
-      const response = await ApiClient.getAllStores();
-      if (response.success) {
-        setStores(response.data || []);
-        if (response.data && response.data.length > 0) {
-          setSelectedStore(response.data[0].store_number);
-        }
-      } else {
-        handleError(new Error(response.error || "Failed to fetch stores"), "fetchStores");
+      const data = await apiService.getStores();
+      setStores(data || []);
+      if (data && data.length > 0) {
+        setSelectedStore(data[0].store_number);
       }
     } catch (error) {
       handleError(error, "fetchStores");
@@ -83,16 +79,12 @@ export const useStoreScheduling = (activeTab: string) => {
   const fetchSchedules = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await ApiClient.getAllStoreSchedules();
-      if (response.success) {
-        console.log('Fetched schedules:', response.data?.length || 0);
-        if (response.data && response.data.length > 0) {
-          console.log('Sample schedule:', response.data[0]);
-        }
-        setSchedules(response.data || []);
-      } else {
-        handleError(new Error(response.error || "Failed to fetch store schedules"), "fetchSchedules");
+      const data = await apiService.getAllStoreSchedules();
+      console.log('Fetched schedules:', data?.length || 0);
+      if (data && data.length > 0) {
+        console.log('Sample schedule:', data[0]);
       }
+      setSchedules(data || []);
     } catch (error) {
       handleError(error, "fetchSchedules");
     } finally {
@@ -156,7 +148,7 @@ export const useStoreScheduling = (activeTab: string) => {
 
     setIsSaving(true);
     try {
-      const response = await ApiClient.createStoreSchedule({
+      const created = await apiService.createStoreSchedule({
         store_number: selectedStore,
         date: toDateOnlyString(selectedDate!),
         employee_name: scheduleForm.employee_name,
@@ -167,15 +159,10 @@ export const useStoreScheduling = (activeTab: string) => {
         shift_time: scheduleForm.shift_time,
         notes: scheduleForm.notes,
       });
-      
-      if (response.success) {
-        await fetchSchedules(); // Refresh the list
-        resetScheduleForm();
-        setIsCreating(false);
-        handleSuccess(`Pharmacist schedule created for Store #${selectedStore}`);
-      } else {
-        handleError(new Error(response.error || "Failed to create schedule"), "createSchedule");
-      }
+      await fetchSchedules();
+      resetScheduleForm();
+      setIsCreating(false);
+      handleSuccess(`Pharmacist schedule created for Store #${selectedStore}`);
     } catch (error) {
       handleError(error, "createSchedule");
     } finally {
@@ -200,7 +187,7 @@ export const useStoreScheduling = (activeTab: string) => {
 
     setIsSaving(true);
     try {
-      const response = await ApiClient.updateStoreSchedule(editingSchedule!.id, {
+      const updated = await apiService.updateStoreSchedule(editingSchedule!.id, {
         store_number: editingSchedule!.store_number,
         date: toDateOnlyString(editingSchedule!.date),
         employee_name: scheduleForm.employee_name,
@@ -211,16 +198,11 @@ export const useStoreScheduling = (activeTab: string) => {
         shift_time: scheduleForm.shift_time,
         notes: scheduleForm.notes,
       });
-      
-      if (response.success) {
-        await fetchSchedules(); // Refresh the list
-        resetScheduleForm();
-        setIsEditingSchedule(false);
-        setEditingSchedule(null);
-        handleSuccess(`Pharmacist schedule updated for Store #${selectedStore}`);
-      } else {
-        handleError(new Error(response.error || "Failed to update schedule"), "updateSchedule");
-      }
+      await fetchSchedules();
+      resetScheduleForm();
+      setIsEditingSchedule(false);
+      setEditingSchedule(null);
+      handleSuccess(`Pharmacist schedule updated for Store #${selectedStore}`);
     } catch (error) {
       handleError(error, "updateSchedule");
     } finally {
@@ -235,13 +217,9 @@ export const useStoreScheduling = (activeTab: string) => {
     }
 
     try {
-      const response = await ApiClient.deleteStoreSchedule(scheduleId);
-      if (response.success) {
-        await fetchSchedules(); // Refresh the list
-        handleSuccess("Pharmacist schedule has been deleted successfully");
-      } else {
-        handleError(new Error(response.error || "Failed to delete schedule"), "deleteSchedule");
-      }
+      await apiService.deleteStoreSchedule(scheduleId);
+      await fetchSchedules();
+      handleSuccess("Pharmacist schedule has been deleted successfully");
     } catch (error) {
       handleError(error, "deleteSchedule");
     }

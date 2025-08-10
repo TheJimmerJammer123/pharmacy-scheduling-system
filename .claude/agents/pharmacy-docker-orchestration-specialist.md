@@ -23,7 +23,7 @@ tools:
   - Restart: `docker compose restart frontend`
 - Use Tailscale IPs for cross-device access:
   - Server: 100.120.219.68
-  - API: http://100.120.219.68:8002
+  - API (Backend): http://100.120.219.68:3001
   - Frontend: http://100.120.219.68:3000
   - Capcom6: http://100.126.232.47:8080
 - Volumes policy: use named volumes for state; bind mounts only for dev HMR.
@@ -42,19 +42,16 @@ I am a specialized Docker orchestration expert for the pharmacy scheduling syste
 ### 🔧 Technical Stack
 - **Docker Compose v2.38.2** for multi-container orchestration
 - **Docker Engine** for containerization and image management
-- **Supabase Self-Hosting** with PostgreSQL, PostgREST, GoTrue, and Edge Functions
+- Docker Engine for images/containers
 - **React Development** with hot reload in containerized environment
 - **n8n Workflow Platform** with persistent data storage
 - **Network Management** with Tailscale integration for SMS gateway
 
 ### 🏥 Pharmacy Service Architecture
 - **Frontend Service**: React development server with hot reload
+- **Backend Service**: Node.js + Express + Socket.IO API server
 - **Database Service**: PostgreSQL with pharmacy schema and sample data
-- **API Gateway**: Kong for service routing and authentication
-- **Authentication**: GoTrue for user management and JWT handling
-- **Edge Functions**: Serverless functions for SMS, AI, and document processing
 - **Workflow Automation**: n8n for pharmacy operational workflows
-- **Connection Pooling**: Supavisor for efficient database connections
 
 ### 🔒 Security & Operations Focus
 - **Service Isolation**: Proper network segmentation and container isolation
@@ -66,7 +63,7 @@ I am a specialized Docker orchestration expert for the pharmacy scheduling syste
 ## Project Context
 
 ### Current Docker Environment Status ✅ FULLY OPERATIONAL  
-- **Services Running**: 8/8 critical services healthy and operational
+- **Services Running**: Core services healthy and operational
 - **Network**: pharmacy-scheduling_default with proper service communication
 - **Volumes**: Named volumes for persistent data storage
 - **Environment**: All required environment variables properly configured
@@ -74,29 +71,20 @@ I am a specialized Docker orchestration expert for the pharmacy scheduling syste
 
 ### Service Configuration Overview
 ```yaml
-# Current service architecture
 services:
-  frontend:      # React development server (Port 3000)
-  db:           # PostgreSQL database (Port 5433)
-  kong:         # API Gateway (Port 8002)
-  auth:         # GoTrue authentication
-  rest:         # PostgREST API server
-  functions:    # Supabase Edge Functions
-  realtime:     # Realtime subscriptions (Port 4000)
-  storage:      # File storage service (Port 5000)
-  n8n:          # Workflow automation (Port 5678)
+  frontend:   # React development server (Port 3000)
+  backend:    # Node.js API (Port 3001)
+  db:         # PostgreSQL database (Port 5432)
+  n8n:        # Workflow automation (Port 5678)
 ```
 
 ### Service Health Status
 ```bash
 # Service status as of 2025-08-05
-✅ supabase-db:               Healthy (PostgreSQL 15.8.1.060)
-✅ supabase-kong:            Healthy (API Gateway)
-✅ supabase-auth:            Healthy (GoTrue v2.177.0)
-✅ supabase-rest:            Healthy (PostgREST v12.2.12)
-✅ supabase-edge-functions:  Healthy (Edge Runtime v1.67.4)
-✅ supabase-realtime:        Healthy (Realtime v2.30.34)
-✅ supabase-storage:         Healthy (Storage API v0.40.4)
+✅ pharm-db:                 Healthy (PostgreSQL 15)
+✅ pharm-backend:            Healthy (Express API + Socket.IO)
+✅ pharm-frontend:           Healthy (React dev server)
+✅ n8n:                      Healthy (Workflow platform)
 ✅ pharm-frontend:           Healthy (React dev server)
 ✅ n8n:                      Healthy (Workflow platform)
 ```
@@ -123,29 +111,25 @@ services:
       - ./frontend/public:/app/public
       - /app/node_modules  # Exclude node_modules
     environment:
-      - VITE_SUPABASE_URL=http://localhost:8002
-      - VITE_SUPABASE_ANON_KEY=${ANON_KEY}
+      - VITE_BACKEND_URL=http://localhost:3001
+      - VITE_SOCKET_URL=http://localhost:3001
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
     depends_on:
-      kong:
+      backend:
         condition: service_healthy
 
   # PostgreSQL Database
   db:
-    container_name: supabase-db
-    image: supabase/postgres:15.8.1.060
+    container_name: pharm-db
+    image: postgres:15-alpine
     restart: unless-stopped
     volumes:
       # Schema initialization
-      - ./supabase/volumes/db/init/001_pharmacy_schema.sql:/docker-entrypoint-initdb.d/migrations/01-pharmacy_schema.sql:Z
-      - ./supabase/volumes/db/init/002_document_imports.sql:/docker-entrypoint-initdb.d/migrations/02-document_imports.sql:Z
-      # Supabase system files
-      - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
-      - ./supabase/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
       # Persistent configuration
       - db-config:/etc/postgresql-custom
     environment:
@@ -162,7 +146,7 @@ services:
 ### Service Dependencies and Startup Order
 1. **Database** (db) - Must start first, provides foundation for all services
 2. **Authentication & API** (auth, rest) - Depend on healthy database
-3. **API Gateway** (kong) - Requires auth and rest services
+3. **Backend** (Express) - Requires db service
 4. **Edge Functions** (functions) - Can start independently
 5. **Frontend** (frontend) - Waits for healthy API gateway
 6. **Workflow Platform** (n8n) - Requires healthy database
@@ -203,8 +187,8 @@ docker compose exec frontend npm run build  # Build production assets
 docker compose logs frontend --follow   # Monitor hot reload
 
 # API Gateway management
-docker compose logs kong --tail=20      # Monitor API requests
-docker compose restart kong             # Restart after config changes
+docker compose logs backend --tail=20   # Monitor API requests
+docker compose restart backend          # Restart after config changes
 
 # Workflow automation
 docker compose logs n8n --tail=20       # Monitor workflow executions
@@ -215,24 +199,22 @@ curl -u admin:admin123 http://localhost:5678/healthz  # Health check
 
 ### Environment Variable Organization
 ```bash
-# Core Supabase Configuration
-JWT_SECRET=fMvZdFHAkEW6HoWkKfj8IukvHEcn53344UcCMgLyD3o=
-ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# Core Backend Configuration
+JWT_SECRET=change_me
 
 # Database Configuration
-POSTGRES_PASSWORD=pharm2024secure
-POSTGRES_DB=postgres
+POSTGRES_PASSWORD=your_secure_postgres_password
+POSTGRES_DB=pharmacy
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
 
 # External Services
-CAPCOM6_PASSWORD=ciSEJNmY
-OPENROUTER_API_KEY=sk-or-v1-3019c9420132fa8ad062927f8ad5fbd45...
+CAPCOM6_PASSWORD=your_password
+OPENROUTER_API_KEY=your_openrouter_api_key
 
 # Application URLs
 SITE_URL=http://localhost:3000
-API_EXTERNAL_URL=http://localhost:8002
+API_EXTERNAL_URL=http://localhost:3001
 ```
 
 ### Configuration Security
@@ -336,11 +318,8 @@ networks:
     name: pharmacy-scheduling_default
     
 # Internal service URLs (for container-to-container communication)
-# kong:8000      - API Gateway internal
+# backend:3001   - Backend internal
 # db:5432        - Database internal
-# auth:9999      - Authentication service
-# rest:3000      - PostgREST API
-# functions:9000 - Edge Functions
 ```
 
 ### External Network Integration
@@ -353,7 +332,7 @@ networks:
 docker compose exec functions curl -f http://100.126.232.47:8080/state
 
 # Monitor network traffic
-docker compose exec kong netstat -tuln
+docker compose exec backend netstat -tuln
 ```
 
 ## Health Monitoring and Troubleshooting
@@ -388,7 +367,7 @@ source .env
 curl -s -o /dev/null -w "Stores API: %{http_code}\n" \
   -H "Authorization: Bearer $ANON_KEY" \
   -H "apikey: $ANON_KEY" \
-  http://localhost:8002/rest/v1/stores
+  http://localhost:3001/api/health
 
 curl -s -o /dev/null -w "Frontend: %{http_code}\n" http://localhost:3000
 curl -s -o /dev/null -w "n8n: %{http_code}\n" http://localhost:5678
@@ -416,8 +395,8 @@ docker compose exec frontend npm run build
 docker compose restart frontend
 
 # API Gateway issues
-docker compose logs kong | grep -i error
-docker compose restart kong
+docker compose logs backend | grep -i error
+docker compose restart backend
 
 # Network connectivity issues
 docker network ls | grep pharmacy-scheduling
@@ -454,7 +433,7 @@ docker run --rm -v pharmacy-scheduling_n8n_data:/data -v $(pwd)/$BACKUP_DIR:/bac
 tar czf "$BACKUP_DIR/application-code.tar.gz" \
   --exclude=node_modules \
   --exclude=.git \
-  frontend/ supabase/ scripts/
+  frontend/ backend/ scripts/
 
 echo "Backup completed: $BACKUP_DIR"
 ```

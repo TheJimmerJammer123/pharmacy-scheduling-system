@@ -1,49 +1,76 @@
-# Documentation Directory
+# Documentation Index
 
-This directory contains organized documentation for the pharmacy scheduling system.
+Use this index to navigate all project docs quickly in Cursor or Claude Code.
 
-## Directory Structure
+## Start Here
+- Project Overview: ../README.md
+- Architecture Plan: ../ARCHITECTURE_PLAN.md
+- Agent-Ready Architecture: ARCHITECTURE_AGENT.md
+- API Documentation: api/API_DOCUMENTATION.md
 
-```
-docs/
-├── architecture/    # System architecture and design documents
-├── api/            # API documentation and specifications
-└── deployment/     # Deployment guides and operations
-```
+## Architecture
+- High-level Architecture: ../ARCHITECTURE_PLAN.md
+- Document Ingestion System: architecture/DOCUMENT_INGESTION_SYSTEM.md
+- Realtime (Socket.IO) Events: see API docs events section
 
-## Document Organization
+## Backend (Node.js + Express)
+- Environment Variables: ../env.example
+- Service Health: GET /api/health
+- Auth Endpoints: see API docs (Authentication)
+- SMS Integration: ./SMS_INTEGRATION.md
 
-### architecture/
-- System design documents
-- Database schema documentation  
-- Integration patterns and workflows
-- Performance audit reports
-- Document ingestion system details
+## Frontend (React + Vite + TS)
+- Dev server and configuration: ../frontend/README.md
+- API client: ../frontend/src/services/apiService.ts
+- Socket client: ../frontend/src/services/socketService.ts
 
-### api/
-- REST API documentation
-- Edge Functions specifications
-- Authentication and authorization
-- Error handling and response formats
+## Database (PostgreSQL)
+- Schema initialization: ../backend/db/init
+- Core tables: see API docs (Database Schema)
 
-### deployment/
-- Environment setup guides
-- Docker deployment instructions
-- Database migration procedures
-- Monitoring and maintenance
+## Workflows & Automation
+- n8n platform: docker-compose.yml service and environment
+- Webhooks: SMS inbound webhook `/api/webhooks/capcom6` (Backend)
 
-## Documentation Standards
+## Data Operations
+ - Excel Import Guide: EXCEL_IMPORT_GUIDE.md
+ - Environment reference: env.md
 
-1. Use Markdown format for all documentation
-2. Include clear headings and table of contents
-3. Provide code examples where applicable
-4. Keep documentation current with system changes
-5. Include diagrams using Mermaid or similar tools
+## Environment & Operations
+- Agent Handbook: AGENTS_GUIDE.md
 
-## Contributing
+## Deployment & Operations
+- Local development: ../start-new-architecture.sh
+- Compose services: ../docker-compose.yml
+- Deployment notes: deployment/README.md
 
-When adding new documentation:
-- Place in appropriate subdirectory
-- Follow naming convention: `topic-description.md`
-- Update relevant README files
-- Include date and author information
+## Contributing & Processes
+- Project coordination and guidelines: ../CLAUDE.md
+
+## Scripts
+- Data import: ../scripts/data-processing/import-complete-dataset.js
+- Utilities: ../scripts/utilities/
+
+## Quick Links
+- Root README: ../README.md
+- Architecture Plan: ../ARCHITECTURE_PLAN.md
+- API Docs: api/API_DOCUMENTATION.md
+- Cursor/Claude setup: CURSOR_CLAUDE_SETUP.md
+
+## Base URLs (Development)
+- Frontend: http://100.120.219.68:3000
+- Backend API: http://100.120.219.68:3001/api
+- Socket.IO: http://100.120.219.68:3001
+- Capcom6 (Local Server): http://100.126.232.47:8080
+- n8n: http://100.120.219.68:5678
+
+## Agent Docs (for Claude Code / Cursor)
+- Agents index: ../.claude/agents/README.md
+- Frontend developer: ../.claude/agents/pharmacy-frontend-developer.md
+- Database administrator: ../.claude/agents/pharmacy-database-administrator.md
+- Docker orchestration specialist: ../.claude/agents/pharmacy-docker-orchestration-specialist.md
+- SMS integration specialist: ../.claude/agents/pharmacy-sms-integration-specialist.md
+- AI chatbot developer: ../.claude/agents/pharmacy-ai-chatbot-developer.md
+- Document processing specialist: ../.claude/agents/pharmacy-document-processing-specialist.md
+- Security & authentication specialist: ../.claude/agents/pharmacy-security-authentication-specialist.md
+- n8n automation specialist: ../.claude/agents/pharmacy-n8n-automation-specialist.md

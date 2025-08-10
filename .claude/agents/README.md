@@ -2,26 +2,21 @@
 
 ## Overview
 
-This directory contains 9 specialized subagents designed specifically for the pharmacy scheduling system. Each subagent is a domain expert with deep knowledge of their specific area, comprehensive tool access, and strict security protocols for handling employee data.
+This directory contains 8 specialized subagents designed specifically for the pharmacy scheduling system. Each subagent is a domain expert with deep knowledge of their specific area, comprehensive tool access, and strict security protocols for handling employee data.
 
-## **Primary Coordinator**
-
-### [🎭 Pharmacy Workflow Orchestrator](./pharmacy-workflow-orchestrator.md)
-**NEW**: Complex task coordination, GitHub Actions CI/CD, emergency rollbacks  
-**Key Focus**: Multi-agent coordination, workflow management, emergency procedures  
-**Core Capabilities**:
-- GitHub Actions CI/CD pipeline management and emergency rollback procedures
-- Multi-agent task coordination and workflow orchestration
-- Comprehensive development commands and environment management
-- Emergency response coordination and incident management
-- Quality gates and deployment pipeline oversight
+## Architecture context
+- Backend: Node.js + Express + Socket.IO (port 3001)
+- Database: PostgreSQL (port 5432)
+- Frontend: React + Vite (port 3000)
+- Automation: n8n (port 5678)
+- SMS Gateway: Capcom6 Android SMS Gateway in Local Server mode via Tailscale at `http://100.126.232.47:8080`
 
 ## 🎯 Complete Subagent Portfolio
 
 ### 🏆 **High Priority Subagents**
 
 #### 1. [🏥 Pharmacy Frontend Developer](./pharmacy-frontend-developer.md)
-**Specialization**: React, TypeScript, Tailwind CSS, Supabase integration  
+**Specialization**: React, TypeScript, Tailwind CSS, backend API integration  
 **Key Focus**: Employee data protection, HIPAA compliance, pharmacy workflows  
 **Core Capabilities**:
 - React 18 + TypeScript development with shadcn/ui components
@@ -32,7 +27,7 @@ This directory contains 9 specialized subagents designed specifically for the ph
 - AI chatbot integration for natural language queries
 
 #### 2. [🗄️ Pharmacy Database Administrator](./pharmacy-database-administrator.md)
-**Specialization**: PostgreSQL/Supabase, performance optimization, data integrity  
+**Specialization**: PostgreSQL, performance optimization, data integrity  
 **Key Focus**: Employee data security, audit logging, compliance readiness  
 **Core Capabilities**:
 - Complete pharmacy schema management (stores, contacts, schedules, messages)

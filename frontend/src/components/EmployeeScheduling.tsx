@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiClient } from "@/lib/supabase-api";
+import { apiService } from "@/services/apiService";
 import { useToast } from "@/hooks/use-toast";
 
 interface EmployeeSchedulingProps {
@@ -60,11 +60,14 @@ export const EmployeeScheduling = memo(({ activeTab, setActiveTab }: EmployeeSch
   const loadEmployees = async () => {
     setIsLoadingEmployees(true);
     try {
-      const response = await ApiClient.getAllEmployees();
-      if (response.success && response.data) {
-        setEmployees(response.data);
-        if (response.data.length > 0 && !selectedEmployee) {
-          setSelectedEmployee(response.data[0].employee_name);
+      // TODO: Implement employee fetching in the new backend
+      // For now, get unique employee names from contacts
+      const contacts = await apiService.getContacts();
+      if (contacts) {
+        const employeeNames = contacts.map(contact => ({ employee_name: contact.name }));
+        setEmployees(employeeNames);
+        if (employeeNames.length > 0 && !selectedEmployee) {
+          setSelectedEmployee(employeeNames[0].employee_name);
         }
       }
     } catch (error) {
@@ -81,24 +84,48 @@ export const EmployeeScheduling = memo(({ activeTab, setActiveTab }: EmployeeSch
 
   const loadEmployeeSchedules = async () => {
     if (!selectedEmployee) return;
-    
+
     setIsLoadingSchedules(true);
     try {
       // Load schedules for the current month
-      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString().split('T')[0];
-      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString().split('T')[0];
-      
-      const response = await ApiClient.getEmployeeSchedules(selectedEmployee, startDate, endDate);
-      if (response.success && response.data) {
-        setEmployeeSchedules(response.data);
+      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        .toISOString()
+        .split('T')[0];
+      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+        .toISOString()
+        .split('T')[0];
+
+      // Fetch filtered schedule entries for the selected employee and date range
+      const schedules = await apiService.getAllStoreSchedules({
+        employee_name: selectedEmployee,
+        date_from: startDate,
+        date_to: endDate,
+      });
+
+      if (schedules) {
+        const normalized = schedules.map((schedule: any) => ({
+          id: typeof schedule.id === 'string' ? parseInt(schedule.id, 10) : schedule.id,
+          store_number: schedule.store_number,
+          store_name: `Store #${schedule.store_number}`,
+          store_address: `Address for Store #${schedule.store_number}`,
+          date: schedule.date,
+          employee_name: schedule.employee_name,
+          shift_time: schedule.shift_time,
+          notes: schedule.notes || '',
+          created_at: schedule.created_at || new Date().toISOString(),
+          updated_at: schedule.updated_at || new Date().toISOString(),
+        }));
+        setEmployeeSchedules(normalized);
+      } else {
+        setEmployeeSchedules([]);
       }
     } catch (error) {
       console.error('Failed to load employee schedules:', error);
       setEmployeeSchedules([]);
       toast({
-        title: "Error",
-        description: "Failed to load employee schedules",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load employee schedules',
+        variant: 'destructive',
       });
     } finally {
       setIsLoadingSchedules(false);
@@ -109,12 +136,9 @@ export const EmployeeScheduling = memo(({ activeTab, setActiveTab }: EmployeeSch
     if (!selectedEmployee) return;
     
     try {
-      const response = await ApiClient.getEmployeeNotes(selectedEmployee);
-      if (response.success && response.data && response.data.length > 0) {
-        setEmployeeNotes(response.data[0].notes || '');
-      } else {
-        setEmployeeNotes('');
-      }
+      // TODO: Implement employee notes in the new backend
+      // For now, just show placeholder
+      setEmployeeNotes('Employee notes feature coming soon');
     } catch (error) {
       console.error('Failed to load employee notes:', error);
       setEmployeeNotes('');
@@ -135,27 +159,18 @@ export const EmployeeScheduling = memo(({ activeTab, setActiveTab }: EmployeeSch
 
     setIsSavingNotes(true);
     try {
-      const response = await ApiClient.saveEmployeeNotes(selectedEmployee, editedNotes);
-      if (response.success) {
-        setEmployeeNotes(editedNotes);
-        setIsEditingNotes(false);
-        toast({
-          title: "Success",
-          description: "Employee notes saved successfully",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to save employee notes",
-          variant: "destructive",
-        });
-      }
+      // Placeholder until backend support is implemented
+      toast({
+        title: 'Feature Coming Soon',
+        description: 'Employee notes saving will be available in a future update',
+      });
+      setIsEditingNotes(false);
     } catch (error) {
       console.error('Failed to save employee notes:', error);
       toast({
-        title: "Error",
-        description: "Failed to save employee notes",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to save employee notes',
+        variant: 'destructive',
       });
     } finally {
       setIsSavingNotes(false);

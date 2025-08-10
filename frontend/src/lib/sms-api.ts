@@ -1,53 +1,72 @@
-import { supabase } from './supabase';
-
 export interface SendSMSRequest {
-  contactId: string;
+  to: string;
   message: string;
-  requiresAcknowledgment?: boolean;
+  contactId?: string;
 }
 
 export interface SendSMSResponse {
-  success: boolean;
-  messageId?: string;
-  capcom6MessageId?: string;
-  error?: string;
+  id: string;
+  to: string;
+  from: string;
+  message: string;
+  status: string;
+  timestamp: string;
+  contactId?: string;
+  dbId?: string;
+}
+
+export interface Message {
+  id: string;
+  contact_id: string;
+  content: string;
+  direction: 'inbound' | 'outbound';
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+  capcom6_message_id?: string;
+  created_at: string;
+  contact_name?: string;
+  contact_phone?: string;
 }
 
 export class SMSApiClient {
-  // SMS sending via Supabase Edge Function (handles CORS and server-side Capcom6 calls)
-  static async sendSMS(request: SendSMSRequest): Promise<SendSMSResponse> {
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://100.120.219.68:8002';
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  private static getBaseURL(): string {
+    return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+  }
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-sms-v3`, {
+  private static getAuthToken(): string | null {
+    return localStorage.getItem('authToken');
+  }
+
+  private static getAuthHeaders(): HeadersInit {
+    const token = this.getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  }
+
+  // SMS sending via our Node.js backend
+  static async sendSMS(request: SendSMSRequest): Promise<SendSMSResponse | { success: false; error: string }> {
+    try {
+      const response = await fetch(`${this.getBaseURL()}/api/send-sms`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${anonKey}`,
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({
-          contactId: request.contactId,
+          to: request.to,
           message: request.message,
-          requiresAcknowledgment: request.requiresAcknowledgment || false
+          contactId: request.contactId
         })
       });
 
-      const result = await response.json();
-      
       if (!response.ok) {
+        const error = await response.json();
         return {
           success: false,
-          error: result.error || 'Failed to send SMS'
+          error: error.error || 'Failed to send SMS'
         };
       }
 
-      return {
-        success: result.success,
-        messageId: result.messageId,
-        capcom6MessageId: result.capcom6MessageId,
-        error: result.success ? undefined : result.error
-      };
+      const result = await response.json();
+      return result as SendSMSResponse;
 
     } catch (error: any) {
       console.error('SMS API error:', error);
@@ -59,48 +78,38 @@ export class SMSApiClient {
   }
 
   // Get messages for a contact
-  static async getContactMessages(contactId: string) {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('contact_id', contactId)
-      .order('created_at', { ascending: true });
+  static async getContactMessages(contactId: string): Promise<{ success: boolean; data?: Message[]; error?: string }> {
+    try {
+      const response = await fetch(`${this.getBaseURL()}/api/messages/${contactId}`, {
+        headers: this.getAuthHeaders()
+      });
 
-    if (error) {
+      if (!response.ok) {
+        const error = await response.json();
+        return { success: false, error: error.error || 'Failed to fetch messages' };
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+
+    } catch (error: any) {
       console.error('Error fetching messages:', error);
       return { success: false, error: error.message };
     }
-
-    return { success: true, data };
   }
 
-  // Delete a message
-  static async deleteMessage(messageId: string) {
-    const { error } = await supabase
-      .from('messages')
-      .delete()
-      .eq('id', messageId);
-
-    if (error) {
-      console.error('Error deleting message:', error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
+  // Check if user is authenticated
+  static isAuthenticated(): boolean {
+    return !!this.getAuthToken();
   }
 
-  // Mark message as read
-  static async markMessageAsRead(messageId: string) {
-    const { error } = await supabase
-      .from('messages')
-      .update({ status: 'read' })
-      .eq('id', messageId);
+  // Set auth token (called after login)
+  static setAuthToken(token: string) {
+    localStorage.setItem('authToken', token);
+  }
 
-    if (error) {
-      console.error('Error marking message as read:', error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
+  // Clear auth token (called on logout)
+  static clearAuthToken() {
+    localStorage.removeItem('authToken');
   }
 }

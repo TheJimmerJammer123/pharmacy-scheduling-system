@@ -96,7 +96,6 @@ if [ ! -f ".github/CODEOWNERS" ]; then
 
 # Docker and infrastructure
 docker-compose.yml @TheJimmerJammer123
-/supabase/ @TheJimmerJammer123
 /.github/ @TheJimmerJammer123
 
 # Documentation and configuration
@@ -241,7 +240,7 @@ body:
       description: Which part of the system is affected?
       options:
         - Frontend (React/TypeScript)
-        - Backend (Supabase/Database)
+        - Backend (Node.js/Database)
         - SMS Integration (Capcom6)
         - Docker Services
         - Documentation
@@ -325,7 +324,7 @@ body:
       description: Which part of the system would this affect?
       options:
         - Frontend (React/TypeScript)
-        - Backend (Supabase/Database)
+        - Backend (Node.js/Database)
         - SMS Integration (Capcom6)
         - AI Chatbot
         - Docker Services

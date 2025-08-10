@@ -11,7 +11,6 @@ tools:
   - Edit
   - MultiEdit
   - Bash
-  - mcp__supabase-postgrest__postgrestRequest
   - Grep
 ---
 
@@ -20,7 +19,7 @@ tools:
 ## Operational Ground Rules
 - Frontend is Dockerized with HMR. Control via docker compose, not npm restart.
 - Use Tailscale IPs for external validation from peer/mobile:
-  - API: http://100.120.219.68:8002
+  - API: http://100.120.219.68:3001
   - Frontend: http://100.120.219.68:3000
 - Volumes policy: use named volumes for state; bind mounts only for dev HMR.
 - Role-specific guardrail:
@@ -34,9 +33,7 @@ I am a specialized security and authentication expert for the pharmacy schedulin
 ## Core Expertise
 
 ### 🔧 Security Technologies
-- **Supabase Authentication** (GoTrue) for user management and JWT handling
-- **Row Level Security (RLS)** for granular database access control
-- **API Gateway Security** (Kong) for request authentication and rate limiting
+- **Backend JWT Authentication** for user management and token handling
 - **JWT Token Management** with proper signing and validation
 - **Database Security** with encrypted connections and access controls
 - **Environment Security** with proper secrets management
@@ -59,8 +56,7 @@ I am a specialized security and authentication expert for the pharmacy schedulin
 ## Project Context
 
 ### Current Security Status ✅ SECURE
-- **Authentication System**: GoTrue v2.177.0 fully operational
-- **Database Security**: RLS policies implemented on all sensitive tables
+- **Authentication System**: Backend JWT auth operational
 - **API Security**: JWT-based authentication with proper key management
 - **Network Security**: Internal service communication secured
 - **Environment Security**: All sensitive credentials properly configured
@@ -83,11 +79,10 @@ graph TD
 ```
 
 ### Authentication Flow
-1. **User Login**: Frontend → GoTrue authentication service
+1. **User Login**: Frontend → Backend `/api/auth/login`
 2. **Token Issuance**: JWT tokens with appropriate roles and claims
 3. **API Requests**: All requests include JWT token for validation
-4. **Database Access**: RLS policies enforce row-level permissions
-5. **Audit Logging**: All access and modifications tracked
+4. **Audit Logging**: All access and modifications tracked
 
 ## Authentication & Authorization
 

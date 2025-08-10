@@ -1,29 +1,49 @@
-# Pharm Project
+# 🏥 Pharmacy Scheduling System
 
-A comprehensive pharmacy scheduling and communication system designed for pharmacist schedulers to manage employee schedules, handle SMS communications, and interact with an AI chatbot for intelligent scheduling assistance.
+A modern, AI-powered pharmacy scheduling and communication system built with a simplified architecture for better performance, maintainability, and cost efficiency.
 
 ## 🎯 Project Overview
 
 This system enables pharmacist schedulers to:
 - **Manage Employee Schedules**: Import and view scheduling data from Excel files across all stores and employees
-- **SMS Communication**: Send, receive, and store SMS messages with employees using Capcom6 SMS Gateway:  (via Tailscale) ✅ OPERATIONAL
-  - Username: 
-  - Password: 
-  - Documentation:
+- **SMS Communication**: Send, receive, and store SMS messages with employees using Capcom6 Android SMS Gateway running in Local Server mode over Tailscale. ✅ OPERATIONAL
+  - Gateway URL: `http://100.126.232.47:8080`
+  - Mode: Local Server (device-hosted) via Tailscale
+  - Documentation: [Official Repository](https://github.com/capcom6/android-sms-gateway), [API Spec](https://capcom6.github.io/android-sms-gateway/)
 - **AI-Powered Assistance**: Chat with an intelligent AI bot that can query scheduling data and answer employee-related questions
 - **Smart Conversation Management**: Toggle between AI chatbot and direct human communication for individual employee conversations
 - **Multi-Store Support**: Access scheduling data for all pharmacy locations and employees
 
 ## 🏗️ Architecture
 
-This project follows a service-oriented architecture with the following components:
+This project uses a **simplified 4-service architecture** that eliminates complex dependencies and vendor lock-in:
 
-- **Backend**: Supabase (PostgreSQL database, authentication, real-time features, API)
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│    Frontend     │    │     Backend     │    │    Database     │    │      N8N        │
+│                 │    │                 │    │                 │    │                 │
+│ React + TypeScript │ │ Node.js + Express│ │   PostgreSQL    │    │   Workflows     │
+│ Vite + Tailwind    │ │ Socket.IO       │    │   Direct Conn   │    │   Automation    │
+│ Port: 3000         │ │ JWT Auth        │    │   Port: 5432    │    │   Port: 5678    │
+│                    │ │ Port: 3001      │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### Key Components:
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend**: Node.js + Express + Socket.IO (REST API, real-time features, JWT authentication)
+- **Database**: Direct PostgreSQL connection (no external services)
 - **SMS Gateway**: Capcom6 Android SMS Gateway (local server mode via Tailscale) ✅ **OPERATIONAL**
 - **Workflow Automation**: Self-hosted n8n for advanced automation and integrations
-- **AI Integration**: Intelligent chatbot with SQL query capabilities (planned)
+- **AI Integration**: OpenRouter API for intelligent chatbot features
 - **Containerization**: Docker with unified docker-compose.yml
+
+### Migration Benefits:
+- **50% fewer services** (4 vs 8+ services)
+- **No external dependencies** on Supabase
+- **100% cost reduction** from subscription services
+- **Direct database control** and optimization
+- **Simplified deployment** and maintenance
 
 ## ✨ Core Features
 
@@ -90,16 +110,10 @@ pharmacy-scheduling-system/
 │   ├── database/                # Database maintenance and optimization
 │   ├── deployment/              # Deployment automation and environment setup
 │   └── utilities/               # General utility scripts and helper tools
-├── supabase/                    # Supabase self-hosted configuration
-│   ├── volumes/                 # Docker volumes and configuration
-│   │   ├── api/                 # API gateway config
-│   │   ├── db/                  # Database initialization scripts
-│   │   ├── functions/           # Edge functions
-│   │   ├── logs/                # Logging configuration
-│   │   ├── pooler/              # Connection pooler config
-│   │   └── storage/             # File storage
-│   ├── dev/                     # Development data and configs
-│   └── README.md                # Supabase-specific documentation
+├── backend/                     # Node.js + Express backend
+│   ├── server.js               # Main server file
+│   ├── db/                     # Database initialization scripts
+│   └── package.json            # Backend dependencies
 ├── CLAUDE.md                    # Main project documentation and guidelines
 ├── docker-compose.yml           # Main Docker Compose configuration
 ├── package.json                 # Root project configuration and scripts
@@ -131,7 +145,7 @@ pharmacy-scheduling-system/
 
 3. Access the services:
    - Frontend: [http://100.120.219.68:3000](http://100.120.219.68:3000) ✅ **OPERATIONAL**
-   - API Gateway (Kong): [http://100.120.219.68:8002](http://100.120.219.68:8002) ✅ **OPERATIONAL**
+   - Backend API: [http://100.120.219.68:3001](http://100.120.219.68:3001) ✅ **OPERATIONAL**
    - n8n Workflow Platform: [http://100.120.219.68:5678](http://100.120.219.68:5678) ✅ **OPERATIONAL**
 
 ## 🛠️ Development
@@ -142,7 +156,7 @@ This project uses Model Context Protocol (MCP) servers for enhanced development:
 
 - **Context7 MCP**: General code understanding and analysis
 - **Playwright MCP**: Frontend testing and debugging
-- **Supabase MCP**: Backend service interaction and management
+- **Backend MCP**: Backend service interaction and management
 
 ### Development Workflow
 
@@ -168,7 +182,7 @@ This project uses Model Context Protocol (MCP) servers for enhanced development:
 ## 🧪 Testing
 
 - **Frontend**: Playwright for end-to-end testing
-- **Backend**: Supabase testing tools and database testing
+- **Backend**: Node.js testing tools and database testing
 
 ## 📦 Deployment
 
@@ -189,59 +203,42 @@ Once started, access these services:
   - Password: set via N8N_BASIC_AUTH_PASSWORD in .env`admin123`
 
 ### **API Endpoints**
-- **REST API**: `http://100.120.219.68:8002/rest/v1/` ✅ **OPERATIONAL**
-- **Auth API**: `http://100.120.219.68:8002/auth/v1/` ✅ **OPERATIONAL**
-- **Edge Functions**: `http://100.120.219.68:8002/functions/v1/` ✅ **OPERATIONAL**
-- **Webhook**: `http://100.120.219.68:8002/functions/v1/capcom6-webhook` ✅ **OPERATIONAL**
-- **Storage API**: `http://100.120.219.68:8002/storage/v1/` ✅ **OPERATIONAL** (service running, health check disabled)
-- **Realtime API**: `http://100.120.219.68:8002/realtime/v1/` ✅ **OPERATIONAL**
+- **Backend REST API**: `http://100.120.219.68:3001/api` ✅ **OPERATIONAL**
+- **Health**: `http://100.120.219.68:3001/api/health`
+- **SMS Send**: `http://100.120.219.68:3001/api/send-sms` (uses Capcom6 Local Server at `http://100.126.232.47:8080`)
+- **Messages**: `http://100.120.219.68:3001/api/messages/:contactId`
+- **Contacts**: `http://100.120.219.68:3001/api/contacts`
 
 ### **Database Access**
 - **Direct PostgreSQL**: `localhost:5432` (internal Docker network)
-- **Connection Pooler**: Disabled (not needed at current scale)
 
 ### **External Services**
-- **📱 Capcom6 SMS Gateway:  (via Tailscale) ✅ OPERATIONAL
-  - Username: 
-  - Password: 
+- **📱 Capcom6 SMS Gateway (via Tailscale) ✅ OPERATIONAL**
+  - Mode: Local Server (device-hosted)
+  - Gateway URL: `http://100.126.232.47:8080`
+  - Webhook URL (backend): `http://100.120.219.68:3001/api/webhooks/capcom6`
   - Documentation:
-  - Username: `sms`
-  - Password: set via N8N_BASIC_AUTH_PASSWORD in .env`ciSEJNmY`
-  - **Documentation**: 
     - [Official Repository](https://github.com/capcom6/android-sms-gateway)
     - [API Specification](https://capcom6.github.io/android-sms-gateway/)
-  - **Webhook URL**: `https://webhook.jammer-industries.com/functions/v1/capcom6-webhook`
-  - **Status**: ✅ Sending and receiving SMS with real-time updates
+  - Status: ✅ Sending and receiving SMS with real-time updates
 
 ## 📋 Current System Status
 
-### ✅ **Fully Operational Components** 
-- **🐳 Docker Services**: 8 core services running and fully operational
-- **🗃️ Database**: PostgreSQL with complete pharmacy schema and real-time replication
-- **🌐 REST API**: PostgREST endpoints fully functional at port 8002
-- **⚛️ Frontend**: React app with hot reload development environment
-- **📱 SMS Integration**: Complete two-way SMS communication via Capcom6
-  - **Outbound**: Send messages via Edge Functions
-  - **Inbound**: Webhook receiving with real-time updates
-  - **UI**: Auto-scroll to new messages, smart notifications
+### ✅ **Fully Operational Components**
+- **🐳 Docker Services**: 4 core services running and fully operational
+- **🗃️ Database**: PostgreSQL with complete pharmacy schema
+- **⚙️ Backend API**: Node.js + Express on port 3001
+- **⚛️ Frontend**: React app with hot reload
+- **📱 SMS Integration**: Two-way SMS via Capcom6 (webhook to backend)
 - **🤖 AI Assistant**: Basic chatbot integration with OpenRouter API
-  - **Natural Conversations**: GPT-3.5-turbo powered responses
-  - **Pharmacy Context**: Understanding of pharmacy operations
-  - **Real-time Chat**: Instant responses with message history
-- **🔄 Real-time Updates**: Live message synchronization between devices
+- **🔄 Real-time Updates**: Socket.IO SMS updates
 - **⚙️ Workflow Automation**: n8n platform with MCP AI assistance
-- **🔐 Authentication**: Both anonymous and service role access working
+- **🔐 Authentication**: JWT-based auth via backend
 
 ### 🚧 **In Development**
-- **📊 Excel Import**: Schedule data import functionality (Edge Functions ready)
+- **📊 Excel Import**: Schedule data import functionality (backend route planned)
 - **🔍 Advanced AI**: SQL query capabilities for AI chatbot (enhancement planned)
 - **📈 Advanced Analytics**: Comprehensive reporting and insights
-
-### ✅ **Service Status (8/9 Operational)**
-- **🔄 Realtime Service**: ✅ **FULLY OPERATIONAL** - WebSocket subscriptions and live updates working
-- **📁 Storage Service**: ✅ **FULLY OPERATIONAL** - Document upload and storage working
-- **🔐 Auth Service**: ⚠️ **MINOR ISSUES** - Database function permissions (JWT auth working via API keys)
-- **🔗 Connection Pooler**: Disabled (not needed at current scale)
 
 ### 🎯 **Next Priority Features**
 - Employee onboarding automation via n8n workflows
@@ -253,107 +250,31 @@ Once started, access these services:
 
 ### Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory with the following variables (see `env.example` for a template):
 
 ```env
-# =============================================================================
-# CORE SUPABASE CONFIGURATION
-# =============================================================================
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_here
-JWT_EXPIRY=3600
-
-# API Keys (Generated using scripts/generate-api-keys.js)
-ANON_KEY=your_anon_key_here
-SERVICE_ROLE_KEY=your_service_role_key_here
-
-# =============================================================================
-# DATABASE CONFIGURATION
-# =============================================================================
-
-# PostgreSQL Database
+# Database
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
-POSTGRES_DB=postgres
+POSTGRES_DB=pharmacy
+POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_secure_password
 
-# PostgREST Configuration
-PGRST_DB_SCHEMAS=public,storage,graphql_public
+# Backend
+BACKEND_PORT=3001
+FRONTEND_URL=http://localhost:3000
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRY=24h
 
-# =============================================================================
-# AUTHENTICATION CONFIGURATION
-# =============================================================================
+# SMS
+CAPCOM6_API_URL=http://100.126.232.47:8080
+CAPCOM6_API_KEY=your_capcom6_api_key
+CAPCOM6_ACCOUNT_ID=your_capcom6_account_id
+CAPCOM6_PHONE_NUMBER=your_capcom6_phone_number
 
-# Site Configuration
-SITE_URL=http://100.120.219.68:3000
-API_EXTERNAL_URL=http://100.120.219.68:8002
-ADDITIONAL_REDIRECT_URLS=http://100.120.219.68:3000,http://100.120.219.68:5678
-
-# Authentication Features
-DISABLE_SIGNUP=false
-ENABLE_EMAIL_SIGNUP=true
-ENABLE_PHONE_SIGNUP=true
-ENABLE_ANONYMOUS_USERS=true
-ENABLE_EMAIL_AUTOCONFIRM=true
-ENABLE_PHONE_AUTOCONFIRM=true
-
-# SMTP Configuration (for email authentication)
-SMTP_ADMIN_EMAIL=admin@pharmacy-scheduling.com
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-SMTP_SENDER_NAME="Pharmacy Scheduling System"
-
-# Email URL Paths
-MAILER_URLPATHS_INVITE=/auth/v1/verify
-MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
-MAILER_URLPATHS_RECOVERY=/auth/v1/verify
-MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
-
-# =============================================================================
-# EXTERNAL SERVICES
-# =============================================================================
-
-# Capcom6 SMS Gateway:  (via Tailscale) ✅ OPERATIONAL
-  - Username: 
-  - Password: 
-  - Documentation:
-CAPCOM6_PASSWORD=your_capcom6_password
-
-# OpenRouter AI API
-OPENROUTER_API_KEY=your_openrouter_api_key
-
-# =============================================================================
-# KONG API GATEWAY
-# =============================================================================
-
-# Dashboard Access
-DASHBOARD_USERNAME=admin
-DASHBOARD_PASSWORD=your_secure_password
-
-# =============================================================================
-# EDGE FUNCTIONS
-# =============================================================================
-
-# JWT Verification for Edge Functions
-FUNCTIONS_VERIFY_JWT=true
-
-# =============================================================================
-# N8N WORKFLOW AUTOMATION
-# =============================================================================
-
-N8N_BASIC_AUTH_ACTIVE=true
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=your_secure_password
-
-# =============================================================================
-# SECURITY KEYS (Generated automatically)
-# =============================================================================
-
-VAULT_ENC_KEY=your_vault_encryption_key
-SECRET_KEY_BASE=your_secret_key_base
+# Frontend
+VITE_BACKEND_URL=http://localhost:3001
+VITE_SOCKET_URL=http://localhost:3001
 ```
 
 ## 📚 Documentation
@@ -361,6 +282,7 @@ SECRET_KEY_BASE=your_secret_key_base
 - [Claude Project Guidelines](CLAUDE.md) - Comprehensive development guidelines
 - [Local Memory & Context](CLAUDE.local.md) - Project context and decisions (contains credentials and sensitive information)
 - Service-specific documentation in each service directory
+ - Full Documentation Index: [docs/README.md](docs/README.md)
 
 ## 🤝 Contributing
 

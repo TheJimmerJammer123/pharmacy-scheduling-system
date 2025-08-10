@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "Pharmacy Scheduling System API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Minimal collection for quick backend tests"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3001",
+          "path": ["api","health"]
+        }
+      }
+    },
+    {
+      "name": "Auth: Login",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3001",
+          "path": ["api","auth","login"]
+        }
+      }
+    },
+    {
+      "name": "Contacts: List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{TOKEN}}"}
+        ],
+        "url": {
+          "raw": "http://localhost:3001/api/contacts",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3001",
+          "path": ["api","contacts"]
+        }
+      }
+    },
+    {
+      "name": "SMS: Send",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{TOKEN}}"},
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"+15551234567\",\n  \"message\": \"Hello from Postman\",\n  \"contactId\": null\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/send-sms",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3001",
+          "path": ["api","send-sms"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {"key":"TOKEN","value":""}
+  ]
+}

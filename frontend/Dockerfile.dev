@@ -9,7 +9,8 @@ RUN apk add --no-cache curl git
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies)
-RUN npm ci
+# Using npm install in dev to be tolerant of lockfile drift
+RUN npm install
 
 # Install nodemon globally for better development experience
 RUN npm install -g nodemon

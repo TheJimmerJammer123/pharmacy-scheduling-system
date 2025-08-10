@@ -10,7 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ApiClient, Contact, CreateContactRequest } from "@/lib/supabase-api";
+import { apiService, Contact } from "@/services/apiService";
+
+interface CreateContactRequest {
+  name: string;
+  phone: string;
+  email?: string;
+  priority: 'low' | 'medium' | 'high';
+  notes?: string;
+}
 
 interface ContactManagementProps {
   activeTab: string;
@@ -59,11 +67,27 @@ export const ContactManagement = ({ activeTab, setActiveTab }: ContactManagement
   } = useQuery({
     queryKey: ['contacts', queryParams],
     queryFn: async () => {
-      const response = await ApiClient.getContacts(queryParams);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch contacts');
+      const contacts = await apiService.getContacts();
+      if (!contacts) {
+        throw new Error('Failed to fetch contacts');
       }
-      return response;
+      // Apply filtering locally since backend doesn't support query params yet
+      let filteredContacts = contacts;
+      
+      if (queryParams.status && queryParams.status !== 'all') {
+        filteredContacts = filteredContacts.filter(c => c.status === queryParams.status);
+      }
+      
+      if (queryParams.search) {
+        const searchLower = queryParams.search.toLowerCase();
+        filteredContacts = filteredContacts.filter(c => 
+          c.name.toLowerCase().includes(searchLower) || 
+          c.phone.includes(queryParams.search) ||
+          (c.email && c.email.toLowerCase().includes(searchLower))
+        );
+      }
+      
+      return { success: true, data: filteredContacts };
     },
     enabled: activeTab === "contacts",
     retry: 3,
@@ -75,11 +99,11 @@ export const ContactManagement = ({ activeTab, setActiveTab }: ContactManagement
   // Mutations for CRUD operations
   const createContactMutation = useMutation({
     mutationFn: async (contactData: CreateContactRequest) => {
-      const response = await ApiClient.createContact(contactData);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to create contact');
+      const contact = await apiService.createContact(contactData);
+      if (!contact) {
+        throw new Error('Failed to create contact');
       }
-      return response;
+      return { success: true, data: contact };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
@@ -109,11 +133,11 @@ export const ContactManagement = ({ activeTab, setActiveTab }: ContactManagement
 
   const updateContactMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string | number; data: any }) => {
-      const response = await ApiClient.updateContact(id, data);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to update contact');
+      const contact = await apiService.updateContact(id.toString(), data);
+      if (!contact) {
+        throw new Error('Failed to update contact');
       }
-      return response;
+      return { success: true, data: contact };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
@@ -143,11 +167,11 @@ export const ContactManagement = ({ activeTab, setActiveTab }: ContactManagement
 
   const deleteContactMutation = useMutation({
     mutationFn: async (id: string | number) => {
-      const response = await ApiClient.deleteContact(id);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to delete contact');
+      const success = await apiService.deleteContact(id.toString());
+      if (!success) {
+        throw new Error('Failed to delete contact');
       }
-      return response;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });

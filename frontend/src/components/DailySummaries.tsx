@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ApiClient } from "@/lib/supabase-api";
+// Note: Daily summaries feature is not yet implemented in the new backend
+// This component provides a placeholder interface
 
 interface DailySummary {
   id: number;
@@ -36,20 +37,19 @@ export const DailySummaries = ({ activeTab, setActiveTab }: DailySummariesProps)
 
   const { toast } = useToast();
 
-  // Fetch all daily summaries
+  // Fetch all daily summaries - placeholder implementation
   const fetchSummaries = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await ApiClient.getAllDailySummaries();
-      if (response.success) {
-        setSummaries(response.data || []);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch daily summaries",
-          variant: "destructive",
-        });
-      }
+      // TODO: Implement daily summaries in the new backend
+      // For now, show empty state
+      setSummaries([]);
+      
+      toast({
+        title: "Feature Coming Soon",
+        description: "Daily summaries will be available in a future update",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Error fetching daily summaries:', error);
       toast({
@@ -89,30 +89,19 @@ export const DailySummaries = ({ activeTab, setActiveTab }: DailySummariesProps)
     setIsEditing(true);
   };
 
-  // Handle saving edited summary
+  // Handle saving edited summary - placeholder implementation
   const handleSaveSummary = async () => {
     if (!selectedSummary) return;
     
     setIsSaving(true);
     try {
-      // Extract just the date part (YYYY-MM-DD) from the full timestamp
-      const dateOnly = selectedSummary.date.split('T')[0];
-      const response = await ApiClient.updateDailySummary(dateOnly, editedMarkdown);
-      if (response.success) {
-        setSelectedSummary(prev => prev ? { ...prev, markdown_content: editedMarkdown } : null);
-        setIsEditing(false);
-        fetchSummaries(); // Refresh the list
-        toast({
-          title: "Summary Saved",
-          description: "Daily summary has been updated successfully",
-        });
-      } else {
-        toast({
-          title: "Save Failed",
-          description: response.error || "Failed to save daily summary",
-          variant: "destructive",
-        });
-      }
+      // TODO: Implement daily summary saving in the new backend
+      toast({
+        title: "Feature Coming Soon",
+        description: "Saving daily summaries will be available in a future update",
+        variant: "default",
+      });
+      setIsEditing(false);
     } catch (error) {
       console.error('Failed to save daily summary:', error);
       toast({
@@ -125,32 +114,19 @@ export const DailySummaries = ({ activeTab, setActiveTab }: DailySummariesProps)
     }
   };
 
-  // Handle deleting a summary
+  // Handle deleting a summary - placeholder implementation
   const handleDeleteSummary = async (summary: DailySummary) => {
     if (!confirm(`Are you sure you want to delete the daily summary for ${summary.date}? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      // Extract just the date part (YYYY-MM-DD) from the full timestamp
-      const dateOnly = summary.date.split('T')[0];
-      const response = await ApiClient.deleteDailySummary(dateOnly);
-      if (response.success) {
-        fetchSummaries(); // Refresh the list
-        if (selectedSummary?.id === summary.id) {
-          setSelectedSummary(null);
-        }
-        toast({
-          title: "Summary Deleted",
-          description: "Daily summary has been deleted successfully",
-        });
-      } else {
-        toast({
-          title: "Delete Failed",
-          description: response.error || "Failed to delete daily summary",
-          variant: "destructive",
-        });
-      }
+      // TODO: Implement daily summary deletion in the new backend
+      toast({
+        title: "Feature Coming Soon",
+        description: "Deleting daily summaries will be available in a future update",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Failed to delete daily summary:', error);
       toast({
@@ -221,7 +197,11 @@ export const DailySummaries = ({ activeTab, setActiveTab }: DailySummariesProps)
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
                 {filteredSummaries.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    {searchTerm ? "No summaries match your search" : "No daily summaries found"}
+                    <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-semibold mb-2">Daily Summaries Coming Soon</h3>
+                    <p className="mb-4">
+                      This feature will be available in a future update.
+                    </p>
                   </div>
                 ) : (
                   filteredSummaries.map((summary) => (

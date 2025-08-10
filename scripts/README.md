@@ -18,7 +18,7 @@ scripts/
 - `data-processing/import-complete-dataset.js` - Script for importing pharmacy data from Excel files
 
 ### Database
-- `database/fix_pooler_encryption.sh` - Fix for Supabase pooler encryption issues
+- (Reserved) Database maintenance scripts
 
 ### Deployment
 - (Future deployment automation scripts)
@@ -36,8 +36,7 @@ All scripts should be run from the project root directory unless otherwise speci
 # Import pharmacy data
 node scripts/data-processing/import-complete-dataset.js
 
-# Fix pooler encryption
-bash scripts/database/fix_pooler_encryption.sh
+# (No Supabase pooler; not applicable)
 ```
 
 ## Development Guidelines

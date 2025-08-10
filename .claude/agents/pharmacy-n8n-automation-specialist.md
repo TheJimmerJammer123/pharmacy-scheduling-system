@@ -19,11 +19,11 @@ tools:
 ## Operational Ground Rules
 - Frontend is Dockerized with HMR. Control via docker compose, not npm restart.
 - Use Tailscale IPs for endpoints from peer/mobile:
-  - API: http://100.120.219.68:8002
+  - API: http://100.120.219.68:3001
   - Capcom6: http://100.126.232.47:8080
 - Volumes policy: use named volumes for state; bind mounts only for dev HMR.
 - Role-specific:
-  - Prefer internal Docker hostnames for container-to-container (e.g., `kong:8000`) and Tailscale IPs for external/mobile checks.
+  - Prefer internal Docker hostnames for container-to-container (e.g., `backend:3001`) and Tailscale IPs for external/mobile checks.
   - Validate with `docker compose ps` and `docker compose logs -f n8n`
 - See: [docker-compose.yml](docker-compose.yml:1), [CLAUDE.md](CLAUDE.md:1)
 
@@ -66,7 +66,7 @@ I am a specialized n8n workflow automation expert for the pharmacy scheduling sy
 - **Storage**: Persistent workflow storage with Docker volume
 
 ### Integration Endpoints
-- **Supabase API**: `http://kong:8000/rest/v1/` (internal Docker network)
+- **Backend API**: `http://backend:3001/api` (internal Docker network)
 - **Capcom6 SMS**: `http://100.126.232.47:8080` (via Tailscale)
 - **OpenRouter AI**: External API for intelligent workflow decisions
 - **Webhook Base**: `http://localhost:8002/functions/v1/` for external webhooks
@@ -184,7 +184,7 @@ When working with n8n workflows, automation, or any n8n-related tasks, **ALWAYS 
       "type": "n8n-nodes-base.httpRequest",
       "parameters": {
         "method": "POST",
-        "url": "http://kong:8000/functions/v1/send-sms-v3",
+        "url": "http://backend:3001/api/send-sms",
         "body": {
           "phone": "+1234567890",
           "message": "Schedule conflict detected for {{$json.employee_name}} on {{$json.schedule_date}}. Please review and resolve."
@@ -236,7 +236,7 @@ When working with n8n workflows, automation, or any n8n-related tasks, **ALWAYS 
       "type": "n8n-nodes-base.httpRequest",
       "parameters": {
         "method": "POST",
-        "url": "http://kong:8000/functions/v1/send-sms-v3",
+        "url": "http://backend:3001/api/send-sms",
         "body": {
           "phone": "+1234567890",
           "message": "New employee {{$json.name}} has been added to the system and welcomed via SMS."
@@ -264,7 +264,7 @@ When working with n8n workflows, automation, or any n8n-related tasks, **ALWAYS 
     {
       "name": "AI Analysis",
       "type": "n8n-nodes-base.httpRequest",
-      "url": "http://kong:8000/functions/v1/ai-chat-response-sql",
+      "url": "http://backend:3001/api/ai/chat",
       "method": "POST",
       "body": {
         "message": "Analyze current schedules and suggest optimizations for coverage and efficiency",
@@ -347,7 +347,7 @@ When working with n8n workflows, automation, or any n8n-related tasks, **ALWAYS 
     {
       "name": "Process Excel File",
       "type": "n8n-nodes-base.httpRequest",
-      "url": "http://kong:8000/functions/v1/process-excel",
+      "url": "http://backend:3001/api/process-excel",
       "method": "POST",
       "body": {
         "file_path": "={{$json.file_path}}",
@@ -370,7 +370,7 @@ When working with n8n workflows, automation, or any n8n-related tasks, **ALWAYS 
     {
       "name": "Send Processing Report",
       "type": "n8n-nodes-base.httpRequest",
-      "url": "http://kong:8000/functions/v1/send-sms-v3",
+      "url": "http://backend:3001/api/send-sms",
       "body": {
         "phone": "={{$json.uploader_phone}}",
         "message": "Document processing complete. {{$json.records_processed}} records imported successfully."

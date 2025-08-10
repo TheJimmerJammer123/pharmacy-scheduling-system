@@ -1,21 +1,26 @@
 {
-  "name": "pharm-project",
-  "version": "1.0.0",
-  "description": "A comprehensive pharmacy scheduling and communication system designed for pharmacist schedulers to manage employee schedules, handle SMS communications, and interact with an AI chatbot for intelligent scheduling assistance.",
-  "main": "scripts/data-processing/import-complete-dataset.js",
+  "name": "pharmacy-scheduling-system",
+  "version": "2.0.0",
+  "description": "A modern pharmacy scheduling and communication system built with Node.js, React, and PostgreSQL. Features employee management, SMS integration, real-time updates, and AI-powered assistance.",
+  "main": "backend/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "data:import": "node scripts/data-processing/import-complete-dataset.js",
+    "start": "./start-new-architecture.sh",
     "dev": "docker compose up -d",
     "stop": "docker compose down",
+    "restart": "docker compose restart",
     "reset": "docker compose down -v && docker compose up -d",
+    "logs": "docker compose logs -f",
+    "backend:logs": "docker compose logs -f backend",
+    "frontend:logs": "docker compose logs -f frontend",
+    "health": "curl -s http://localhost:3001/api/health | jq",
+    "data:import": "node scripts/data-processing/import-complete-dataset.js",
     "frontend:dev": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
     "frontend:test": "cd frontend && npm test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TheJimmerJammer123/pharm-scheduling-project.git"
+    "url": "git+https://github.com/TheJimmerJammer123/pharmacy-scheduling-system.git"
   },
   "keywords": [
     "pharmacy",
@@ -23,16 +28,19 @@
     "healthcare",
     "sms",
     "ai-chatbot",
-    "supabase",
+    "nodejs",
+    "express",
+    "postgresql",
     "react",
-    "typescript"
+    "typescript",
+    "socket-io"
   ],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/TheJimmerJammer123/pharm-scheduling-project/issues"
+    "url": "https://github.com/TheJimmerJammer123/pharmacy-scheduling-system/issues"
   },
-  "homepage": "https://github.com/TheJimmerJammer123/pharm-scheduling-project#readme",
+  "homepage": "https://github.com/TheJimmerJammer123/pharmacy-scheduling-system#readme",
   "dependencies": {
     "xlsx": "^0.18.5"
   },

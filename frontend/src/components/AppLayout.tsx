@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { ApiClient } from "@/lib/supabase-api";
+import { apiService } from "@/services/apiService";
 
 // Lazy load large components
 const Dashboard = lazy(() => import("./Dashboard").then(module => ({ default: module.Dashboard })));
@@ -27,10 +27,10 @@ export const AppLayout = () => {
   // Fetch unread message count
   const fetchUnreadCount = async () => {
     try {
-      const response = await ApiClient.getMessages();
-      if (response.success && response.data) {
+      const messages = await apiService.getMessages();
+      if (messages) {
         // Count unread inbound messages
-        const unreadCount = response.data.filter(msg => 
+        const unreadCount = messages.filter(msg => 
           msg.direction === 'inbound' && msg.status !== 'read'
         ).length;
         console.log('[AppLayout] Unread message count:', unreadCount);

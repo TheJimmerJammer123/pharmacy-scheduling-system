@@ -2,22 +2,22 @@
 
 ## Overview
 
-The Document Ingestion System is a comprehensive, well-organized solution for uploading and processing various document types (Excel, PDF, CSV) into the pharmacy scheduling system. It provides both manual upload capabilities and automated processing pipelines.
+The Document Ingestion System is a comprehensive solution for uploading and processing various document types (Excel, PDF, CSV) into the pharmacy scheduling system using the new **Node.js + PostgreSQL architecture**. It provides both manual upload capabilities and automated processing pipelines.
 
 ## 🏗️ Architecture
 
 ### Core Components
 
-1. **Document Upload Service** (`/functions/v1/document-upload`)
+1. **Document Upload API** (`POST /api/documents/upload`)
    - Handles file uploads and validation
    - Supports multiple file types (Excel, PDF, CSV)
    - File size validation (max 50MB)
-   - Base64 encoding for secure transmission
+   - Secure file storage with metadata
 
-2. **File Processing Pipeline**
-   - **Excel Processing** (`/functions/v1/process-excel`)
-   - **PDF Processing** (`/functions/v1/process-pdf`) - Future
-   - **CSV Processing** (`/functions/v1/process-csv`) - Future
+2. **File Processing Pipeline** (Backend Services)
+   - **Excel Processing Service** - Parse Excel files and extract data
+   - **PDF Processing Service** - Text extraction from PDFs (Future)
+   - **CSV Processing Service** - CSV parsing and validation (Future)
 
 3. **Database Schema**
    - `document_imports` - Track uploads and processing status
@@ -86,7 +86,7 @@ CREATE TABLE data_mappings (
 
 ### 1. File Upload
 ```
-User uploads file → Frontend converts to base64 → POST to /document-upload
+User uploads file → Frontend converts to base64 → POST to /api/documents/upload
 ```
 
 ### 2. Validation & Storage
@@ -211,12 +211,11 @@ Update status to 'completed' → Store metadata → Clean up temporary content
 <DocumentUpload />
 
 // Or programmatically
-const response = await fetch('/functions/v1/document-upload', {
+const response = await fetch('/api/documents/upload', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    'Authorization': `Bearer ${JWT_TOKEN}`
   },
   body: JSON.stringify({
     file_name: 'pharmacy_data.xlsx',
@@ -234,23 +233,22 @@ const response = await fetch('/functions/v1/document-upload', {
 
 ### Check Import Status
 ```typescript
-// Query import status
-const { data: imports } = await supabase
-  .from('document_imports')
-  .select('*')
-  .order('created_at', { ascending: false })
+// Query import status (REST)
+const response = await fetch('/api/imports', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${JWT_TOKEN}`
+  }
+});
+const imports = await response.json();
 
-// Monitor real-time updates
-const subscription = supabase
-  .channel('document_imports')
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'document_imports'
-  }, (payload) => {
-    console.log('Import status updated:', payload)
-  })
-  .subscribe()
+// Monitor real-time updates (Socket.IO)
+import { io } from 'socket.io-client';
+const socket = io('http://localhost:3001');
+socket.on('connect', () => console.log('Connected'));
+socket.on('import_updated', (payload) => {
+  console.log('Import status updated:', payload);
+});
 ```
 
 ## 🔍 Monitoring & Troubleshooting
@@ -298,7 +296,7 @@ const subscription = supabase
 ## 🛠️ Development
 
 ### Adding New File Types
-1. Create processing function (`/functions/v1/process-{type}`)
+1. Create backend route (`/api/documents/process-{type}`)
 2. Add file type validation
 3. Implement data extraction logic
 4. Create data mapping configurations
@@ -318,7 +316,7 @@ const subscription = supabase
 
 ## 📚 API Reference
 
-### POST /functions/v1/document-upload
+### POST /api/documents/upload
 Upload a document for processing.
 
 **Request Body:**
@@ -347,7 +345,7 @@ Upload a document for processing.
 }
 ```
 
-### GET /rest/v1/document_imports
+### GET /api/imports
 Query import history and status.
 
 **Query Parameters:**
@@ -360,10 +358,9 @@ Query import history and status.
 - File size limits (50MB max)
 - File type validation
 - Base64 encoding for secure transmission
-- Row-level security policies
+- Row-level access control (implemented in backend routes)
 - Input sanitization
 - Error message sanitization
-- Access control via Supabase RLS
 
 ## 📈 Performance Metrics
 
