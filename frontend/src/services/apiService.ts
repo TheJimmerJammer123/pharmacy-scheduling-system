@@ -94,6 +94,21 @@ class ApiService {
     const resolveBackendURL = () => {
       const envUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
       if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
+        // If env points to localhost but app isn't served from localhost, prefer dynamic host
+        try {
+          const currentHost = typeof window !== 'undefined' ? window.location?.hostname : '';
+          const isLocalEnv = /^(?:https?:\/\/)?(?:localhost|127\.0\.0\.1|\[?::1\]?)(?::\d+)?$/i.test(envUrl);
+          const isCurrentLocal = /^(localhost|127\.0\.0\.1|\[?::1\]?)$/i.test(currentHost || '');
+          if (isLocalEnv && !isCurrentLocal) {
+            // Override to dynamic host for cross-device access
+            const protocol = window.location?.protocol || 'http:';
+            const hostname = currentHost || 'localhost';
+            const port = '3001';
+            return `${protocol}//${hostname}:${port}`;
+          }
+        } catch (_) {
+          // fall through to using envUrl
+        }
         return envUrl;
       }
       try {
