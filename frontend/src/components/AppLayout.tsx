@@ -31,15 +31,7 @@ export const AppLayout = () => {
       try {
         // Check if already authenticated
         const existingToken = localStorage.getItem('authToken');
-        if (existingToken) {
-          console.log('✅ Already authenticated with existing token');
-          setAuthReady(true);
-          return;
-        }
-        
-        console.log('🔐 Auto-login: Starting authentication...');
-        
-        // Login with admin credentials
+        // Resolve backend URL (same logic as before)
         const backendUrl = (() => {
           const envUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
           if (envUrl && envUrl.trim().length > 0) return envUrl;
@@ -52,6 +44,30 @@ export const AppLayout = () => {
             return 'http://100.120.219.68:3001';
           }
         })();
+
+        if (existingToken) {
+          // Validate token; if invalid, fall through to login
+          try {
+            const meResp = await fetch(`${backendUrl}/api/auth/me`, {
+              headers: { 'Authorization': `Bearer ${existingToken}` }
+            });
+            if (meResp.ok) {
+              console.log('✅ Existing token validated');
+              setAuthReady(true);
+              return;
+            } else {
+              console.warn('⚠️ Existing token invalid, re-authenticating');
+              localStorage.removeItem('authToken');
+            }
+          } catch (e) {
+            console.warn('⚠️ Token validation failed, re-authenticating');
+            localStorage.removeItem('authToken');
+          }
+        }
+        
+        console.log('🔐 Auto-login: Starting authentication...');
+        
+        // Login with admin credentials
         const response = await fetch(`${backendUrl}/api/auth/login`, {
           method: 'POST',
           headers: {
