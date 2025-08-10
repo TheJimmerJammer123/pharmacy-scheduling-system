@@ -12,7 +12,7 @@ const Dashboard = lazy(() => import("./Dashboard").then(module => ({ default: mo
 const MessagingInterface = lazy(() => import("./MessagingInterface").then(module => ({ default: module.MessagingInterface })));
 const ContactManagement = lazy(() => import("./ContactManagement").then(module => ({ default: module.ContactManagement })));
 const SettingsComponent = lazy(() => import("./Settings").then(module => ({ default: module.Settings })));
-const DailySummaryCalendar = lazy(() => import("./DailySummaryCalendar").then(module => ({ default: module.DailySummaryCalendar })));
+// Daily Summary Calendar temporarily disabled
 const StoreScheduling = lazy(() => import("./StoreScheduling").then(module => ({ default: module.StoreScheduling })));
 const EmployeeScheduling = lazy(() => import("./EmployeeScheduling").then(module => ({ default: module.EmployeeScheduling })));
 const ChatbotInterface = lazy(() => import("./ChatbotInterface").then(module => ({ default: module.ChatbotInterface })));

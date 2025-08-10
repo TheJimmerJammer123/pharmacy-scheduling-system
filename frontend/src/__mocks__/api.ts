@@ -56,62 +56,15 @@ export const ApiClient = {
     },
   }),
   
-  getDailySummary: jest.fn().mockResolvedValue({
-    success: true,
-    data: {
-      id: 1,
-      date: '2024-01-01',
-      summary: 'Test summary',
-      key_points: ['Point 1', 'Point 2'],
-      action_items: ['Action 1', 'Action 2'],
-      contacts: ['Contact 1'],
-      markdown_content: '# Test Summary\n\nThis is a test summary.',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-    },
-  }),
+  getDailySummary: jest.fn().mockResolvedValue({ success: true, data: null }),
   
-  generateDailySummary: jest.fn().mockResolvedValue({
-    success: true,
-    data: {
-      id: 1,
-      date: '2024-01-01',
-      summary: 'Generated summary',
-      key_points: ['Generated point 1'],
-      action_items: ['Generated action 1'],
-      contacts: ['Generated contact 1'],
-      markdownContent: '# Generated Summary\n\nThis is a generated summary.',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-    },
-  }),
+  generateDailySummary: jest.fn().mockResolvedValue({ success: false, error: 'disabled' }),
   
-  updateDailySummary: jest.fn().mockResolvedValue({
-    success: true,
-    data: { message: 'Summary updated successfully' },
-  }),
+  updateDailySummary: jest.fn().mockResolvedValue({ success: false, error: 'disabled' }),
   
-  getAllDailySummaries: jest.fn().mockResolvedValue({
-    success: true,
-    data: [
-      {
-        id: 1,
-        date: '2024-01-01',
-        summary: 'Test summary',
-        key_points: ['Point 1'],
-        action_items: ['Action 1'],
-        contacts: ['Contact 1'],
-        markdown_content: '# Test Summary',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      },
-    ],
-  }),
+  getAllDailySummaries: jest.fn().mockResolvedValue({ success: true, data: [] }),
   
-  deleteDailySummary: jest.fn().mockResolvedValue({
-    success: true,
-    data: { message: 'Summary deleted successfully' },
-  }),
+  deleteDailySummary: jest.fn().mockResolvedValue({ success: false, error: 'disabled' }),
   
   getAllStores: jest.fn().mockResolvedValue({
     success: true,

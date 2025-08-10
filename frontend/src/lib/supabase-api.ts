@@ -483,71 +483,17 @@ export class SupabaseApiClient {
     };
   }
 
-  // Daily Summary methods
+  // Daily Summary methods temporarily disabled
   static async getDailySummary(): Promise<ApiResponse<any>> {
-    const today = new Date().toISOString().split('T')[0];
-    
-    const { data, error } = await supabase
-      .from('daily_summaries')
-      .select('*')
-      .eq('date', today)
-      .single();
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-      return this.wrapResponse(null, error);
-    }
-
-    return this.wrapResponse(data, null);
+    return { success: true, data: null };
   }
 
   static async generateDailySummary(): Promise<ApiResponse<any>> {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Get messages from today
-    const messagesResponse = await this.getMessages();
-    if (!messagesResponse.success) {
-      return messagesResponse;
-    }
-
-    const todayMessages = (messagesResponse.data || []).filter(msg => 
-      msg.created_at?.startsWith(today)
-    );
-
-    // Create a simple summary
-    const summary = {
-      date: today,
-      total_messages: todayMessages.length,
-      inbound_messages: todayMessages.filter(m => m.direction === 'inbound').length,
-      outbound_messages: todayMessages.filter(m => m.direction === 'outbound').length,
-      ai_generated_messages: todayMessages.filter(m => m.ai_generated).length,
-      markdown_content: `# Daily Summary - ${today}\n\n**Messages Today:** ${todayMessages.length}\n\n**Breakdown:**\n- Inbound: ${todayMessages.filter(m => m.direction === 'inbound').length}\n- Outbound: ${todayMessages.filter(m => m.direction === 'outbound').length}\n- AI Generated: ${todayMessages.filter(m => m.ai_generated).length}\n\n**Status:** Summary generated successfully.`
-    };
-
-    // Insert or update daily summary
-    const { data, error } = await supabase
-      .from('daily_summaries')
-      .upsert(summary, { 
-        onConflict: 'date',
-        ignoreDuplicates: false 
-      })
-      .select()
-      .single();
-
-    return this.wrapResponse(data, error);
+    return { success: false, error: 'Daily summary feature is disabled' };
   }
 
-  static async updateDailySummary(date: string, markdownContent: string): Promise<ApiResponse<any>> {
-    const { data, error } = await supabase
-      .from('daily_summaries')
-      .update({ 
-        markdown_content: markdownContent,
-        updated_at: new Date().toISOString()
-      })
-      .eq('date', date)
-      .select()
-      .single();
-
-    return this.wrapResponse(data, error);
+  static async updateDailySummary(_date: string, _markdownContent: string): Promise<ApiResponse<any>> {
+    return { success: false, error: 'Daily summary feature is disabled' };
   }
 
   // Health check - always return success for Supabase

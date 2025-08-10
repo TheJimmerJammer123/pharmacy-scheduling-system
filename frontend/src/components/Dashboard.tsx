@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, memo } from "react";
-import { MessageSquare, Users, Send, TrendingUp, Sparkles, FileText, Edit3, Save, Loader2, Calendar } from "@/lib/icons";
+import { MessageSquare, Users, Send, TrendingUp } from "@/lib/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,17 +34,7 @@ interface DashboardStats {
   };
 }
 
-interface DailySummary {
-  id: number;
-  date: string;
-  summary: string;
-  key_points: string[];
-  action_items: string[];
-  contacts: string[];
-  markdown_content: string;
-  created_at: string;
-  updated_at: string;
-}
+// Daily Summary feature temporarily removed
 
 export const Dashboard = memo(({ activeTab, setActiveTab, refreshTrigger }: DashboardProps) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -52,12 +42,7 @@ export const Dashboard = memo(({ activeTab, setActiveTab, refreshTrigger }: Dash
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Daily summary state
-  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
-  const [isEditingSummary, setIsEditingSummary] = useState(false);
-  const [isSavingSummary, setIsSavingSummary] = useState(false);
-  const [editedMarkdown, setEditedMarkdown] = useState("");
+  // Daily Summary feature temporarily removed
 
   const { toast } = useToast();
 
@@ -99,100 +84,6 @@ export const Dashboard = memo(({ activeTab, setActiveTab, refreshTrigger }: Dash
       return () => clearTimeout(timeoutId);
     }
   }, [activeTab, refreshTrigger]);
-
-  // Fetch daily summary when dashboard becomes active or when refreshTrigger changes
-  useEffect(() => {
-    if (activeTab === "dashboard") {
-      fetchDailySummary();
-    }
-  }, [activeTab, refreshTrigger]);
-
-  // Fetch daily summary
-  const fetchDailySummary = async () => {
-    console.log('[Dashboard] fetchDailySummary: Starting...');
-    try {
-      const response = await ApiClient.getDailySummary();
-      console.log('[Dashboard] fetchDailySummary: Response', response);
-      if (response.success && response.data) {
-        console.log('[Dashboard] Setting daily summary:', response.data);
-        setDailySummary(response.data);
-        setEditedMarkdown(response.data.markdown_content || "");
-        // Make it available globally for debugging
-        (window as any).dailySummaryData = response.data;
-        console.log('[Dashboard] fetchDailySummary: State updated successfully');
-      } else {
-        console.log('[Dashboard] fetchDailySummary: No data or failed response');
-      }
-    } catch (error) {
-      console.error('Failed to fetch daily summary:', error);
-    }
-  };
-
-  // Generate daily summary
-  const handleGenerateDailySummary = async () => {
-    setIsGeneratingSummary(true);
-    try {
-      const response = await ApiClient.generateDailySummary();
-      if (response.success && response.data) {
-        setDailySummary(response.data);
-        setEditedMarkdown(response.data.markdownContent || "");
-        toast({
-          title: "Daily Summary Generated",
-          description: "AI has analyzed today's conversations and created a summary",
-        });
-      } else {
-        toast({
-          title: "Generation Failed",
-          description: response.error || "Failed to generate daily summary",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Failed to generate daily summary:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate daily summary. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingSummary(false);
-    }
-  };
-
-  // Save edited daily summary
-  const handleSaveDailySummary = async () => {
-    if (!dailySummary) return;
-    
-    setIsSavingSummary(true);
-    try {
-      // Extract just the date part (YYYY-MM-DD) from the full timestamp
-      const dateOnly = dailySummary.date.split('T')[0];
-      const response = await ApiClient.updateDailySummary(dateOnly, editedMarkdown);
-      if (response.success) {
-        setDailySummary(prev => prev ? { ...prev, markdown_content: editedMarkdown } : null);
-        setIsEditingSummary(false);
-        toast({
-          title: "Summary Saved",
-          description: "Daily summary has been updated successfully",
-        });
-      } else {
-        toast({
-          title: "Save Failed",
-          description: response.error || "Failed to save daily summary",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Failed to save daily summary:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save daily summary. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingSummary(false);
-    }
-  };
 
   // Calculate real statistics using both API data and local calculations with memoization
   const stats = useMemo(() => {
@@ -486,133 +377,7 @@ export const Dashboard = memo(({ activeTab, setActiveTab, refreshTrigger }: Dash
         </Card>
       </div>
 
-      {/* Daily Summary Section */}
-      <Card className="bg-card border-border shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              Daily Summary
-            </div>
-            <div className="flex items-center gap-2">
-              {!dailySummary && (
-                <Button 
-                  onClick={handleGenerateDailySummary}
-                  disabled={isGeneratingSummary}
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {isGeneratingSummary ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  Generate Summary
-                </Button>
-              )}
-              {dailySummary && !isEditingSummary && (
-                <>
-                  <Button 
-                    onClick={() => setActiveTab("daily-summaries")}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    View History
-                  </Button>
-                  <Button 
-                    onClick={() => setIsEditingSummary(true)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                </>
-              )}
-              {dailySummary && isEditingSummary && (
-                <Button 
-                  onClick={handleSaveDailySummary}
-                  disabled={isSavingSummary}
-                  size="sm"
-                  className="bg-success hover:bg-success/90"
-                >
-                  {isSavingSummary ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save
-                </Button>
-              )}
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!dailySummary ? (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">
-                No daily summary generated yet. Click "Generate Summary" to create an AI-powered summary of today's conversations.
-              </p>
-              <Button 
-                onClick={() => setActiveTab("daily-summaries")}
-                variant="outline"
-                size="sm"
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                View Calendar
-              </Button>
-            </div>
-          ) : isEditingSummary ? (
-            <div className="space-y-4">
-              <Textarea
-                value={editedMarkdown}
-                onChange={(e) => setEditedMarkdown(e.target.value)}
-                placeholder="Edit the daily summary markdown..."
-                className="min-h-[400px] font-mono text-sm"
-              />
-              <div className="flex items-center gap-2">
-                <Button 
-                  onClick={() => {
-                    setIsEditingSummary(false);
-                    setEditedMarkdown(dailySummary.markdown_content || "");
-                  }}
-                  variant="outline"
-                  size="sm"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSaveDailySummary}
-                  disabled={isSavingSummary}
-                  size="sm"
-                  className="bg-success hover:bg-success/90"
-                >
-                  {isSavingSummary ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <pre className="whitespace-pre-wrap font-mono text-sm bg-muted p-4 rounded-lg overflow-x-auto">
-                  {dailySummary.markdown_content}
-                </pre>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Last updated: {new Date(dailySummary.updated_at).toLocaleString()}</span>
-                <span>Generated: {new Date(dailySummary.created_at).toLocaleString()}</span>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Daily Summary Section temporarily removed */}
     </div>
   );
 });
