@@ -2,7 +2,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { logger } = require('./errorHandler');
 
-// Enhanced security middleware configuration
+// Enhanced security middleware configuration  
 const securityMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
@@ -18,6 +18,7 @@ const securityMiddleware = helmet({
         'ws://localhost:3001',
         'http://100.120.219.68:3001',
         'ws://100.120.219.68:3001',
+        'http://100.120.219.68:3000', // Add frontend origin for mobile access
         process.env.FRONTEND_URL || ''
       ].filter(Boolean),
       frameSrc: ["'none'"],
@@ -25,6 +26,8 @@ const securityMiddleware = helmet({
       mediaSrc: ["'self'"],
       workerSrc: ["'none'"]
     },
+    // Disable upgrade-insecure-requests for development/Tailscale HTTP access
+    upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
   },
   crossOriginEmbedderPolicy: false, // Disabled for Socket.IO compatibility
   hsts: {
@@ -177,7 +180,13 @@ const getCorsOptions = () => {
       if (!origin) return false;
       const url = new URL(origin);
       // Permit same host on port 3000 talking to backend on 3001
-      return url.protocol.startsWith('http') && !!url.hostname;
+      // Also allow Tailscale network range (100.x.x.x) for development
+      const isTailscale = url.hostname.startsWith('100.');
+      const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      
+      return url.protocol.startsWith('http') && 
+             (isLocalhost || (isTailscale && isDevelopment));
     } catch (_) {
       return false;
     }

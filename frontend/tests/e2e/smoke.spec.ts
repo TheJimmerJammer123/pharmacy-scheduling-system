@@ -4,7 +4,7 @@ import { test, expect, Page } from 'playwright/test';
 const setAuthToken = async (page: Page) => {
   const apiUrl = process.env.API_URL || 'http://localhost:3001';
   const resp = await page.request.post(`${apiUrl}/api/auth/login`, {
-    data: { username: 'admin', password: 'admin123' },
+    data: { username: 'admin', password: 'admin' },
     headers: { 'Content-Type': 'application/json' }
   });
   const body = await resp.json();

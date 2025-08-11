@@ -75,7 +75,7 @@ export const AppLayout = () => {
           },
           body: JSON.stringify({
             username: 'admin',
-            password: 'admin123'
+            password: 'admin'
           })
         });
 
